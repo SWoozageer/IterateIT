@@ -1,40 +1,47 @@
 import { useAuth } from '../context/AuthContext'
+import PageWrapper from '../components/layout/PageWrapper'
+import { Ticket, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 
-export default function Dashboard() {
-  const { profile, organisation, signOut } = useAuth()
-
-  async function handleSignOut() {
-    await signOut()
-    window.location.href = '/login'
-  }
-
+// Summary stat card
+function StatCard({ icon: Icon, label, value, colour }) {
   return (
-    <div className="min-h-screen bg-brand-off-white">
-      <nav className="bg-brand-navy px-6 py-4 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-extrabold text-white">
-          Iterate<span className="text-brand-blue">IT</span>
-        </h1>
-        <button
-          onClick={handleSignOut}
-          className="text-brand-steel text-sm hover:text-white transition-colors"
-        >
-          Sign out
-        </button>
-      </nav>
-
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <h2 className="font-display text-3xl font-extrabold text-brand-navy mb-2">
-          Welcome, {profile?.full_name || 'there'}!
-        </h2>
-        <p className="text-brand-steel text-sm mb-8">
-          {organisation?.name} · {profile?.role}
-        </p>
-        <div className="bg-white rounded-lg p-8 shadow-sm border border-brand-divider">
-          <p className="text-brand-navy text-sm">
-            🎉 You're logged in. Dashboard coming next.
-          </p>
-        </div>
+    <div className="bg-white rounded-lg border border-brand-divider p-6 flex items-center gap-4">
+      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colour}`}>
+        <Icon size={22} className="text-white" />
+      </div>
+      <div>
+        <p className="text-brand-steel text-sm">{label}</p>
+        <p className="font-display text-3xl font-extrabold text-brand-navy">{value}</p>
       </div>
     </div>
+  )
+}
+
+export default function Dashboard() {
+  const { profile } = useAuth()
+
+  return (
+    <PageWrapper
+      title={`Welcome, ${profile?.full_name || 'there'}!`}
+      subtitle="Here's a summary of what's happening across your systems."
+    >
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard icon={Ticket}      label="Total Tickets"    value="—" colour="bg-brand-blue"    />
+        <StatCard icon={Clock}       label="In Progress"      value="—" colour="bg-yellow-400"    />
+        <StatCard icon={AlertCircle} label="Critical"         value="—" colour="bg-red-500"       />
+        <StatCard icon={CheckCircle} label="Resolved Today"   value="—" colour="bg-green-500"     />
+      </div>
+
+      {/* Placeholder for recent tickets */}
+      <div className="bg-white rounded-lg border border-brand-divider p-6">
+        <h3 className="font-display text-lg font-extrabold text-brand-navy mb-4">
+          Recent Tickets
+        </h3>
+        <p className="text-brand-steel text-sm">
+          Tickets will appear here once you start logging them.
+        </p>
+      </div>
+    </PageWrapper>
   )
 }
