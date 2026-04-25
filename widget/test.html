@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HR Portal — Leave Management</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; }
+    .navbar { background: #1a1a2e; color: white; padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+    .navbar h1 { margin: 0; font-size: 18px; }
+    .breadcrumb { background: white; padding: 10px 24px; font-size: 13px; color: #666; border-bottom: 1px solid #eee; }
+    .breadcrumb span { color: #0057d9; }
+    .content { padding: 32px 24px; max-width: 900px; }
+    .content h2 { color: #1a1a2e; }
+    .card { background: white; border-radius: 8px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .table th { text-align: left; padding: 10px; background: #f5f5f5; color: #666; font-size: 12px; text-transform: uppercase; }
+    .table td { padding: 12px 10px; border-bottom: 1px solid #f0f0f0; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+    .badge-approved { background: #dcfce7; color: #15803d; }
+    .badge-pending  { background: #fef9c3; color: #a16207; }
+    .badge-rejected { background: #fee2e2; color: #b91c1c; }
+  </style>
+</head>
+<body>
+
+  <div class="navbar">
+    <h1>🏢 HR Portal</h1>
+    <span style="opacity:0.5">|</span>
+    <span style="opacity:0.7;font-size:14px">Leave Management System</span>
+  </div>
+
+  <nav class="breadcrumb" aria-label="breadcrumb">
+    <span>Home</span> › <span>Leave Management</span> › <span>My Applications</span>
+  </nav>
+
+  <div class="content">
+    <h2>My Leave Applications</h2>
+
+    <div class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Days</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Annual Leave</td>
+            <td>01 May 2026</td>
+            <td>05 May 2026</td>
+            <td>5</td>
+            <td><span class="badge badge-approved">Approved</span></td>
+          </tr>
+          <tr>
+            <td>Sick Leave</td>
+            <td>15 Apr 2026</td>
+            <td>16 Apr 2026</td>
+            <td>2</td>
+            <td><span class="badge badge-approved">Approved</span></td>
+          </tr>
+          <tr>
+            <td>Annual Leave</td>
+            <td>20 Jun 2026</td>
+            <td>30 Jun 2026</td>
+            <td>10</td>
+            <td><span class="badge badge-pending">Pending</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ITERATEIT WIDGET -->
+  <script src="./widget.js"></script>
+  <script>
+    IterateIT.init({
+      orgId:         'd256424b-bc3e-4fa8-b0a0-c8ccc34fa556',
+      systemId:      'f1165018-e817-4b6f-a89f-4d67f91439f4',
+      apiKey:        'pub_464322ad0dce4f57b0e9b47f63234447',
+      defaultUserId: '44ae48da-f929-40a3-a35f-e04ad332b493',
+      position:      'bottom-right'
+    });
+  </script>
+
+</body>
+</html>
