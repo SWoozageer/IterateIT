@@ -7,27 +7,103 @@ import { Plus, Copy, Check, Eye, EyeOff, Trash2 } from 'lucide-react'
 
 const WIDGET_URL = 'https://iterate-it.vercel.app/widget.js'
 
-// ── System Card ──────────────────────────────
-function SystemCard({ system, widgetKeys, orgId, defaultUserId, onRefresh }) {
-  const [copied,   setCopied]   = useState(null)
-  const [showCode, setShowCode] = useState(false)
-  const [deleting, setDeleting] = useState(false)
+const FRAMEWORKS = [
+  { id: 'nextjs',    label: 'Next.js'       },
+  { id: 'react',     label: 'React (Vite)'  },
+  { id: 'html',      label: 'Plain HTML'    },
+  { id: 'vue',       label: 'Vue.js'        },
+]
 
-  const activeKey = widgetKeys.find(k => k.system_id === system.id && k.is_active)
+function getEmbedCode(framework, { orgId, systemId, apiKey, defaultUserId }) {
+  const config = `    orgId:         '${orgId}',
+    systemId:      '${systemId}',
+    apiKey:        '${apiKey}',
+    defaultUserId: '${defaultUserId}',
+    position:      'bottom-right'`
 
-  function getEmbedCode(key) {
-    return `<!-- IterateIT Widget -->
+  switch (framework) {
+    case 'nextjs': return `// src/app/layout.tsx
+// Add this import at the top:
+import Script from 'next/script'
+
+// Add inside your <body> tag, before closing </body>:
+<Script src="${WIDGET_URL}" strategy="lazyOnload" />
+<Script id="iterateit-init" strategy="lazyOnload">{\`
+  window.addEventListener('load', function() {
+    if (window.IterateIT) {
+      IterateIT.init({
+${config}
+      });
+    }
+  });
+\`}</Script>`
+
+    case 'react': return `// src/App.jsx
+// Add this inside your App component:
+import { useEffect } from 'react'
+
+useEffect(() => {
+  const script = document.createElement('script')
+  script.src = '${WIDGET_URL}'
+  script.onload = () => {
+    window.IterateIT.init({
+${config}
+    })
+  }
+  document.body.appendChild(script)
+  return () => document.body.removeChild(script)
+}, [])`
+
+    case 'vue': return `// src/App.vue
+// Add this in your <script setup> or mounted():
+onMounted(() => {
+  const script = document.createElement('script')
+  script.src = '${WIDGET_URL}'
+  script.onload = () => {
+    window.IterateIT.init({
+${config}
+    })
+  }
+  document.body.appendChild(script)
+})`
+
+    case 'html':
+    default: return `<!-- Add before </body> in your base/layout HTML file -->
 <script src="${WIDGET_URL}"></script>
 <script>
-  IterateIT.init({
-    orgId:         '${orgId}',
-    systemId:      '${system.id}',
-    apiKey:        '${key}',
-    defaultUserId: '${defaultUserId}',
-    position:      'bottom-right'
+  window.addEventListener('load', function() {
+    IterateIT.init({
+${config}
+    });
   });
 </script>`
   }
+}
+
+function getInstructions(framework) {
+  switch (framework) {
+    case 'nextjs': return 'Add to src/app/layout.tsx — this wraps every page automatically. Import Script from next/script.'
+    case 'react':  return 'Add the useEffect to your src/App.jsx — it runs once on app load and persists across all pages.'
+    case 'vue':    return 'Add to src/App.vue in your mounted() or onMounted() hook — runs once on app startup.'
+    case 'html':   return 'Add to your shared layout/base HTML file before </body> — or to every page if no shared layout exists.'
+    default:       return 'Paste before the closing </body> tag.'
+  }
+}
+
+// ── System Card ──────────────────────────────
+function SystemCard({ system, widgetKeys, orgId, defaultUserId, onRefresh }) {
+  const [copied,      setCopied]      = useState(null)
+  const [showCode,    setShowCode]    = useState(false)
+  const [framework,   setFramework]   = useState('nextjs')
+
+  const activeKey = widgetKeys.find(k => k.system_id === system.id && k.is_active)
+
+  const embedCode = activeKey ? getEmbedCode(framework, {
+    orgId,
+    systemId:      system.id,
+    apiKey:        activeKey.key,
+    defaultUserId,
+  }) : ''
 
   async function copyToClipboard(text, label) {
     await navigator.clipboard.writeText(text)
@@ -44,19 +120,20 @@ function SystemCard({ system, widgetKeys, orgId, defaultUserId, onRefresh }) {
   }
 
   async function revokeKey(keyId) {
+    if (!window.confirm('Revoke this key? Apps using it will stop working.')) return
     await supabase.from('widget_keys').update({ is_active: false }).eq('id', keyId)
     onRefresh()
   }
 
   async function deleteSystem() {
-    if (!window.confirm(`Delete "${system.name}"? This cannot be undone.`)) return
-    setDeleting(true)
+    if (!window.confirm(`Deactivate "${system.name}"? This cannot be undone.`)) return
     await supabase.from('systems').update({ is_active: false }).eq('id', system.id)
     onRefresh()
   }
 
   return (
     <div className="bg-white rounded-lg border border-brand-divider p-6">
+
       {/* System header */}
       <div className="flex items-start justify-between mb-4">
         <div>
@@ -66,11 +143,12 @@ function SystemCard({ system, widgetKeys, orgId, defaultUserId, onRefresh }) {
           {system.description && (
             <p className="text-brand-steel text-sm mt-0.5">{system.description}</p>
           )}
-          <p className="text-xs text-brand-steel mt-1 font-mono">ID: {system.id}</p>
+          <p className="text-xs text-brand-steel mt-1 font-mono">
+            System ID: {system.id}
+          </p>
         </div>
         <button
           onClick={deleteSystem}
-          disabled={deleting}
           className="text-brand-steel hover:text-red-500 transition-colors"
           title="Deactivate system"
         >
@@ -94,7 +172,7 @@ function SystemCard({ system, widgetKeys, orgId, defaultUserId, onRefresh }) {
         {activeKey ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-xs bg-white border border-brand-divider rounded px-3 py-2 text-brand-navy font-mono">
+              <code className="flex-1 text-xs bg-white border border-brand-divider rounded px-3 py-2 text-brand-navy font-mono truncate">
                 {activeKey.key}
               </code>
               <button
@@ -102,7 +180,9 @@ function SystemCard({ system, widgetKeys, orgId, defaultUserId, onRefresh }) {
                 className="text-brand-steel hover:text-brand-blue transition-colors flex-shrink-0"
                 title="Copy key"
               >
-                {copied === 'key' ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                {copied === 'key'
+                  ? <Check size={16} className="text-green-500" />
+                  : <Copy size={16} />}
               </button>
             </div>
             <button
@@ -113,7 +193,9 @@ function SystemCard({ system, widgetKeys, orgId, defaultUserId, onRefresh }) {
             </button>
           </div>
         ) : (
-          <p className="text-xs text-brand-steel">No active key — generate one to use the widget.</p>
+          <p className="text-xs text-brand-steel">
+            No active key — generate one to use the widget.
+          </p>
         )}
       </div>
 
@@ -129,26 +211,50 @@ function SystemCard({ system, widgetKeys, orgId, defaultUserId, onRefresh }) {
           </button>
 
           {showCode && (
-            <div className="relative">
-              <pre className="bg-brand-navy text-brand-off-white text-xs rounded-lg p-4 overflow-x-auto leading-relaxed">
-                {getEmbedCode(activeKey.key)}
-              </pre>
-              <button
-                onClick={() => copyToClipboard(getEmbedCode(activeKey.key), 'embed')}
-                className="absolute top-3 right-3 bg-brand-blue text-white text-xs px-3 py-1.5 rounded flex items-center gap-1.5 hover:bg-blue-700 transition-colors"
-              >
-                {copied === 'embed' ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
-              </button>
+            <div>
+              {/* Framework tabs */}
+              <div className="flex gap-1 mb-3 bg-brand-off-white rounded-lg p-1">
+                {FRAMEWORKS.map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFramework(f.id)}
+                    className={`flex-1 text-xs font-semibold py-1.5 px-2 rounded-md transition-colors ${
+                      framework === f.id
+                        ? 'bg-white text-brand-blue shadow-sm'
+                        : 'text-brand-steel hover:text-brand-navy'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-3">
+                <p className="text-xs font-semibold text-blue-700 mb-1">
+                  📋 Where to paste this
+                </p>
+                <p className="text-xs text-blue-600">
+                  {getInstructions(framework)}
+                </p>
+              </div>
+
+              {/* Code block */}
+              <div className="relative">
+                <pre className="bg-brand-navy text-brand-off-white text-xs rounded-lg p-4 overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                  {embedCode}
+                </pre>
+                <button
+                  onClick={() => copyToClipboard(embedCode, 'embed')}
+                  className="absolute top-3 right-3 bg-brand-blue text-white text-xs px-3 py-1.5 rounded flex items-center gap-1.5 hover:bg-blue-700 transition-colors"
+                >
+                  {copied === 'embed'
+                    ? <><Check size={12} /> Copied!</>
+                    : <><Copy size={12} /> Copy</>}
+                </button>
+              </div>
             </div>
           )}
-
-          <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-            <p className="text-xs text-blue-700 font-semibold mb-1">How to embed</p>
-            <p className="text-xs text-blue-600">
-              Paste the embed code just before the closing <code>&lt;/body&gt;</code> tag
-              on every page of your app. The widget will appear automatically.
-            </p>
-          </div>
         </div>
       )}
     </div>
@@ -162,13 +268,14 @@ function NewSystemModal({ orgId, onClose, onSuccess }) {
   const [error,   setError]   = useState('')
 
   function handleChange(e) {
-    const val = e.target.value
+    const val   = e.target.value
     const field = e.target.name
     setForm(f => ({
       ...f,
       [field]: val,
-      // Auto-generate slug from name
-      ...(field === 'name' ? { slug: val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') } : {})
+      ...(field === 'name' ? {
+        slug: val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      } : {})
     }))
   }
 
@@ -176,20 +283,14 @@ function NewSystemModal({ orgId, onClose, onSuccess }) {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     const { error } = await supabase.from('systems').insert({
       org_id:      orgId,
       name:        form.name,
       slug:        form.slug,
       description: form.description,
     })
-
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else {
-      onSuccess()
-    }
+    if (error) { setError(error.message); setLoading(false) }
+    else onSuccess()
   }
 
   return (
@@ -208,53 +309,37 @@ function NewSystemModal({ orgId, onClose, onSuccess }) {
               {error}
             </div>
           )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-brand-navy mb-1">
-                System Name *
+                System Name * <span className="text-brand-steel font-normal">(e.g., HR Portal)</span>
               </label>
               <input
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                required
-                placeholder="e.g., HR Portal"
+                type="text" name="name" value={form.name}
+                onChange={handleChange} required
+                placeholder="HR Portal"
                 className="w-full border border-brand-divider rounded-lg px-3 py-2 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-semibold text-brand-navy mb-1">
-                Slug *
-              </label>
+              <label className="block text-sm font-semibold text-brand-navy mb-1">Slug *</label>
               <input
-                type="text"
-                name="slug"
-                value={form.slug}
-                onChange={handleChange}
-                required
-                placeholder="e.g., hr-portal"
+                type="text" name="slug" value={form.slug}
+                onChange={handleChange} required
+                placeholder="hr-portal"
                 className="w-full border border-brand-divider rounded-lg px-3 py-2 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue font-mono"
               />
-              <p className="text-xs text-brand-steel mt-1">Auto-generated from name. Lowercase, hyphens only.</p>
+              <p className="text-xs text-brand-steel mt-1">Auto-generated. Lowercase and hyphens only.</p>
             </div>
-
             <div>
-              <label className="block text-sm font-semibold text-brand-navy mb-1">
-                Description
-              </label>
+              <label className="block text-sm font-semibold text-brand-navy mb-1">Description</label>
               <input
-                type="text"
-                name="description"
-                value={form.description}
+                type="text" name="description" value={form.description}
                 onChange={handleChange}
                 placeholder="Brief description of this system"
                 className="w-full border border-brand-divider rounded-lg px-3 py-2 text-sm text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-blue"
               />
             </div>
-
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={loading}>
                 {loading ? 'Creating...' : 'Create System'}
@@ -268,7 +353,7 @@ function NewSystemModal({ orgId, onClose, onSuccess }) {
   )
 }
 
-// ── Main Settings Page ───────────────────────
+// ── Main Page ────────────────────────────────
 export default function SettingsPage() {
   const { orgId, user } = useAuth()
 
@@ -281,11 +366,11 @@ export default function SettingsPage() {
 
   async function loadData() {
     setLoading(true)
-    const [{ data: systems }, { data: keys }] = await Promise.all([
+    const [{ data: sys }, { data: keys }] = await Promise.all([
       supabase.from('systems').select('*').eq('is_active', true).order('name'),
       supabase.from('widget_keys').select('*').eq('is_active', true),
     ])
-    setSystems(systems || [])
+    setSystems(sys || [])
     setWidgetKeys(keys || [])
     setLoading(false)
   }
