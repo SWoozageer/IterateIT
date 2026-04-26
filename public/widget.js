@@ -136,16 +136,23 @@
   }
 
   function getBreadcrumbPath() {
-    var selectors = [
-      '[aria-label="breadcrumb"]', '.breadcrumb', '.breadcrumbs',
-      'nav[aria-label="Breadcrumb"]', '.nav-breadcrumb'
-    ];
-    for (var i = 0; i < selectors.length; i++) {
-      var el = document.querySelector(selectors[i]);
-      if (el) return el.innerText.replace(/\n/g, ' › ').trim();
-    }
-    return window.location.pathname.split('/').filter(Boolean).join(' › ');
+   // Try to detect active tab by border-bottom style
+var allButtons = document.querySelectorAll('button');
+for (var j = 0; j < allButtons.length; j++) {
+  var btn = allButtons[j];
+  var style = btn.getAttribute('style') || '';
+  var computed = window.getComputedStyle(btn);
+  // Active tab has a solid bottom border with a non-transparent color
+  if (
+    style.includes('border-bottom') &&
+    !style.includes('transparent') &&
+    btn.innerText.trim().length > 0 &&
+    btn.innerText.trim().length < 30
+  ) {
+    activeTab = btn.innerText.trim();
+    break;
   }
+}
 
   // ── OPEN / CLOSE ────────────────────────────
   function openPanel() {
