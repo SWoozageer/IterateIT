@@ -176,7 +176,10 @@
             '<p><strong>URL:</strong> ' + ctx.url + '</p>' +
             '<p><strong>Path:</strong> ' + ctx.menuPath + '</p>' +
           '</div>' +
-          '<button class="iit-snip-btn" id="iit-snip-btn" type="button">&#9986;&#65039; Snip area</button>' +
+'<div style="display:flex;gap:8px;margin-top:14px;">' +
+  '<button class="iit-snip-btn" id="iit-snip-btn" type="button" style="flex:1;margin-top:0">&#9986;&#65039; Snip area</button>' +
+  '<button class="iit-snip-btn" id="iit-fullscreen-btn" type="button" style="flex:1;margin-top:0">&#128247; Full page</button>' +
+'</div>' +
           '<img id="iit-screenshot-preview" class="iit-screenshot-preview" alt="Screenshot preview" />' +
           '<div id="iit-error" class="iit-error"></div>' +
           '<div id="iit-success" class="iit-success"></div>' +
@@ -197,7 +200,8 @@
       var id = e.target.id;
       if (id === 'iit-close-btn' || id === 'iit-cancel-btn') { closePanel(); return; }
       if (id === 'iit-submit-btn') { submitTicket(); return; }
-      if (id === 'iit-snip-btn')   { captureScreenshot(); return; }
+      if (id === 'iit-snip-btn')      { captureScreenshot(); return; }
+      if (id === 'iit-fullscreen-btn') { captureFullPage(); return; }
     });
 
     var tabs = panel.querySelectorAll('.iit-tab');
@@ -265,7 +269,49 @@
     document.body.appendChild(overlay);
 
     var startX, startY, isDragging = false;
+function captureFullPage() {
+    var btn = document.getElementById('iit-fullscreen-btn');
+    btn.textContent = 'Capturing...';
 
+    document.getElementById('iterateit-btn').style.display   = 'none';
+    document.getElementById('iterateit-panel').style.display = 'none';
+
+    function doCapture() {
+      window.html2canvas(document.body, {
+        useCORS: true,
+        scale:   0.75,
+        logging: false,
+      })
+      .then(function(canvas) {
+        screenshotDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        var preview = document.getElementById('iit-screenshot-preview');
+        preview.src = screenshotDataUrl;
+        preview.style.display = 'block';
+        btn.textContent = 'Full page captured - retake';
+      })
+      .catch(function() {
+        btn.textContent = 'Full page (failed - try again)';
+      })
+      .finally(function() {
+        document.getElementById('iterateit-btn').style.display   = 'flex';
+        document.getElementById('iterateit-panel').style.display = 'flex';
+      });
+    }
+
+    if (!window.html2canvas) {
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload = doCapture;
+      s.onerror = function() {
+        btn.textContent = 'Full page (failed - try again)';
+        document.getElementById('iterateit-btn').style.display = 'flex';
+        document.getElementById('iterateit-panel').style.display = 'flex';
+      };
+      document.head.appendChild(s);
+    } else {
+      doCapture();
+    }
+  }
     function getCoords(e) {
       return {
         x: e.clientX || 0,
@@ -425,6 +471,7 @@
         preview.style.display = 'none';
         preview.src = '';
         document.getElementById('iit-snip-btn').textContent = 'Snip area';
+document.getElementById('iit-fullscreen-btn').textContent = 'Full page';
       }
     }
 
