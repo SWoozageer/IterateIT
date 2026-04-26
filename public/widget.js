@@ -599,7 +599,7 @@ document.getElementById('iit-fullscreen-btn').textContent = 'Full page';
     fetch(
       ITERATEIT_URL + '/rest/v1/tickets?org_id=eq.' + config.orgId +
       '&system_id=eq.' + config.systemId +
-      '&select=id,title,status,severity,created_at&order=created_at.desc&limit=10',
+      '&select=id,title,status,severity,type,created_at,updated_at&order=created_at.desc&limit=50',
       {
         headers: {
           'apikey':        ANON_KEY,
@@ -614,16 +614,103 @@ document.getElementById('iit-fullscreen-btn').textContent = 'Full page';
         list.innerHTML = '<p style="color:#8a9bb0;font-size:13px;margin-top:8px">No tickets found.</p>';
         return;
       }
-      list.innerHTML = tickets.map(function(t) {
-        return '<div class="iit-ticket-item">' +
-          '<div class="iit-ticket-title">' + t.title + '</div>' +
-          '<div class="iit-ticket-meta">' +
-            '<span class="iit-badge iit-badge-' + t.status + '">' + t.status.replace('_',' ') + '</span>' +
-            '<span>' + t.severity + '</span>' +
-            '<span>' + new Date(t.created_at).toLocaleDateString() + '</span>' +
-          '</div>' +
-        '</div>';
-      }).join('');
+
+      // Group by status
+      var statusOrder = ['open','in_progress','in_review','on_hold','resolved','closed'];
+      var statusLabels = {
+        open:        'Open',
+        in_progress: 'In Progress',
+        in_review:   'In Review',
+        on_hold:     'On Hold',
+        resolved:    'Resolved',
+        closed:      'Closed',
+      };
+      var statusColours = {
+        open:        '#1d4ed8',
+        in_progress: '#a16207',
+        in_review:   '#6d28d9',
+        on_hold:     '#6b7280',
+        resolved:    '#15803d',
+        closed:      '#6b7280',
+      };
+      var statusBg = {
+        open:        '#dbeafe',
+        in_progress: '#fef9c3',
+        in_review:   '#ede9fe',
+        on_hold:     '#f3f4f6',
+        resolved:    '#dcfce7',
+        closed:      '#f3f4f6',
+      };
+      var severityColours = {
+        critical: '#b91c1c',
+        high:     '#c2410c',
+        medium:   '#a16207',
+        low:      '#15803d',
+      };
+
+      // Group tickets by status
+      var grouped = {};
+      statusOrder.forEach(function(s) { grouped[s] = []; });
+      tickets.forEach(function(t) {
+        if (grouped[t.status]) grouped[t.status].push(t);
+      });
+
+      var html = '';
+      statusOrder.forEach(function(status) {
+        var group = grouped[status];
+        if (!group.length) return;
+
+        html += '<div style="margin-bottom:16px;">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+            '<span style="' +
+              'display:inline-block;padding:2px 10px;border-radius:99px;' +
+              'font-size:10px;font-weight:600;' +
+              'background:' + statusBg[status] + ';' +
+              'color:' + statusColours[status] + ';' +
+            '">' + statusLabels[status] + '</span>' +
+            '<span style="font-size:11px;color:#8a9bb0;">' + group.length + ' ticket' + (group.length > 1 ? 's' : '') + '</span>' +
+          '</div>';
+
+        group.forEach(function(t) {
+          var date = new Date(t.created_at);
+          var dateStr = date.toLocaleDateString();
+          html += '<div class="iit-ticket-item" style="padding:8px 10px;background:#f9fafb;border-radius:6px;margin-bottom:6px;border:1px solid #f0f0f0;">' +
+            '<div class="iit-ticket-title" style="font-size:12px;margin-bottom:4px;">' + t.title + '</div>' +
+            '<div class="iit-ticket-meta">' +
+              '<span style="' +
+                'display:inline-block;padding:1px 6px;border-radius:99px;font-size:9px;font-weight:600;' +
+                'background:#fee2e2;color:' + (severityColours[t.severity] || '#666') + ';' +
+              '">' + t.severity + '</span>' +
+              '<span style="font-size:10px;color:#8a9bb0;">' + t.type.replace('_',' ') + '</span>' +
+              '<span style="font-size:10px;color:#8a9bb0;">' + dateStr + '</span>' +
+            '</div>' +
+          '</div>';
+        });
+
+        html += '</div>';
+      });
+
+      // Summary counts at top
+      var open    = (grouped['open'] || []).length;
+      var inProg  = (grouped['in_progress'] || []).length;
+      var resolved = (grouped['resolved'] || []).length + (grouped['closed'] || []).length;
+
+      var summary = '<div style="display:flex;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #f0f0f0;">' +
+        '<div style="flex:1;text-align:center;background:#dbeafe;border-radius:8px;padding:8px 4px;">' +
+          '<div style="font-size:18px;font-weight:700;color:#1d4ed8;">' + open + '</div>' +
+          '<div style="font-size:9px;color:#1d4ed8;font-weight:600;">OPEN</div>' +
+        '</div>' +
+        '<div style="flex:1;text-align:center;background:#fef9c3;border-radius:8px;padding:8px 4px;">' +
+          '<div style="font-size:18px;font-weight:700;color:#a16207;">' + inProg + '</div>' +
+          '<div style="font-size:9px;color:#a16207;font-weight:600;">IN PROGRESS</div>' +
+        '</div>' +
+        '<div style="flex:1;text-align:center;background:#dcfce7;border-radius:8px;padding:8px 4px;">' +
+          '<div style="font-size:18px;font-weight:700;color:#15803d;">' + resolved + '</div>' +
+          '<div style="font-size:9px;color:#15803d;font-weight:600;">RESOLVED</div>' +
+        '</div>' +
+      '</div>';
+
+      list.innerHTML = summary + html;
     })
     .catch(function() {
       list.innerHTML = '<p style="color:#c00;font-size:13px">Failed to load tickets.</p>';
