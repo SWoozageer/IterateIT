@@ -8,125 +8,73 @@
   var isOpen = false;
   var screenshotDataUrl = null;
 
-  // ── STYLES ──────────────────────────────────
   function injectStyles() {
     var style = document.createElement('style');
     style.textContent = [
       '#iterateit-btn {',
-        'position:fixed; z-index:999999; bottom:24px; right:24px;',
-        'width:52px; height:52px; border-radius:50%;',
-        'background:#0057d9; color:white; border:none; cursor:pointer;',
+        'position:fixed;z-index:999999;bottom:24px;right:24px;',
+        'width:52px;height:52px;border-radius:50%;',
+        'background:#0057d9;color:white;border:none;cursor:pointer;',
         'box-shadow:0 4px 16px rgba(0,87,217,0.4);',
-        'display:flex; align-items:center; justify-content:center;',
-        'transition:transform 0.2s, box-shadow 0.2s;',
+        'display:flex;align-items:center;justify-content:center;',
+        'transition:transform 0.2s,box-shadow 0.2s;',
       '}',
-      '#iterateit-btn:hover { transform:scale(1.08); box-shadow:0 6px 24px rgba(0,87,217,0.5); }',
-      '#iterateit-btn svg { width:22px; height:22px; }',
-      '#iterateit-panel {',
-        'position:fixed; z-index:999998; bottom:88px; right:24px;',
-        'width:380px; max-height:80vh; background:white;',
-        'border-radius:12px; box-shadow:0 8px 40px rgba(0,0,0,0.18);',
-        'display:none; flex-direction:column;',
-        'font-family:Arial,sans-serif; overflow:hidden;',
+      '#iterateit-btn:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(0,87,217,0.5);}',
+      '#iterateit-btn svg{width:22px;height:22px;}',
+      '#iterateit-panel{',
+        'position:fixed;z-index:999998;bottom:88px;right:24px;',
+        'width:380px;max-height:80vh;background:white;',
+        'border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,0.18);',
+        'display:none;flex-direction:column;',
+        'font-family:Arial,sans-serif;overflow:hidden;',
         'border:1px solid #dde3ec;',
       '}',
-      '.iit-header {',
-        'background:#0d1b2a; padding:16px 20px;',
-        'display:flex; align-items:center; justify-content:space-between;',
-        'flex-shrink:0;',
-      '}',
-      '.iit-header-title { color:white; font-size:16px; font-weight:700; }',
-      '.iit-header-title span { color:#0057d9; }',
-      '.iit-close {',
-        'background:none; border:none; color:#8a9bb0;',
-        'cursor:pointer; font-size:20px; line-height:1; padding:4px 8px;',
-        'border-radius:4px;',
-      '}',
-      '.iit-close:hover { color:white; background:rgba(255,255,255,0.1); }',
-      '.iit-tabs { display:flex; border-bottom:1px solid #dde3ec; background:#f5f7fa; flex-shrink:0; }',
-      '.iit-tab {',
-        'flex:1; padding:10px; font-size:12px; font-weight:600;',
-        'color:#8a9bb0; border:none; background:none; cursor:pointer;',
-        'border-bottom:2px solid transparent;',
-      '}',
-      '.iit-tab.active { color:#0057d9; border-bottom-color:#0057d9; background:white; }',
-      '.iit-body { padding:20px; overflow-y:auto; flex:1; }',
-      '.iit-tab-content { display:none; }',
-      '.iit-tab-content.active { display:block; }',
-      '.iit-label { display:block; font-size:12px; font-weight:600; color:#0d1b2a; margin:14px 0 4px; }',
-      '.iit-label:first-child { margin-top:0; }',
-      '.iit-input, .iit-select, .iit-textarea {',
-        'width:100%; border:1px solid #dde3ec; border-radius:6px;',
-        'padding:8px 10px; font-size:13px; color:#0d1b2a;',
-        'box-sizing:border-box; outline:none; font-family:inherit;',
-        'transition:border-color 0.15s;',
-      '}',
-      '.iit-input:focus, .iit-select:focus, .iit-textarea:focus {',
-        'border-color:#0057d9; box-shadow:0 0 0 3px rgba(0,87,217,0.1);',
-      '}',
-      '.iit-textarea { resize:none; }',
-      '.iit-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }',
-      '.iit-context {',
-        'background:#f5f7fa; border-radius:6px; padding:10px 12px;',
-        'margin-top:14px; font-size:11px; color:#8a9bb0;',
-      '}',
-      '.iit-context-title {',
-        'font-weight:600; color:#0d1b2a; margin-bottom:4px;',
-        'font-size:11px; text-transform:uppercase; letter-spacing:0.5px;',
-      '}',
-      '.iit-context p { margin:2px 0; }',
-      '.iit-snip-btn {',
-        'width:100%; background:#f5f7fa; border:1px dashed #dde3ec;',
-        'border-radius:6px; padding:9px; font-size:12px; color:#8a9bb0;',
-        'cursor:pointer; margin-top:14px; font-family:inherit; transition:all 0.15s;',
-        'box-sizing:border-box;',
-      '}',
-      '.iit-snip-btn:hover { border-color:#0057d9; color:#0057d9; background:#f0f4ff; }',
-      '.iit-screenshot-preview {',
-        'width:100%; border-radius:6px; border:1px solid #dde3ec;',
-        'margin-top:8px; max-height:120px; object-fit:cover; display:none;',
-      '}',
-      '.iit-error {',
-        'background:#fff0f0; border:1px solid #fcc; color:#c00;',
-        'border-radius:6px; padding:8px 12px; font-size:12px; margin-top:10px; display:none;',
-      '}',
-      '.iit-success {',
-        'background:#f0fff4; border:1px solid #9be9b8; color:#1a7a3c;',
-        'border-radius:6px; padding:12px; font-size:13px;',
-        'text-align:center; margin-top:10px; display:none;',
-      '}',
-      '.iit-footer {',
-        'padding:14px 20px; border-top:1px solid #dde3ec;',
-        'display:flex; gap:8px; flex-shrink:0;',
-      '}',
-      '.iit-btn-primary {',
-        'flex:1; background:#0057d9; color:white; border:none;',
-        'border-radius:6px; padding:9px 16px; font-size:13px;',
-        'font-weight:600; cursor:pointer; transition:background 0.15s; font-family:inherit;',
-      '}',
-      '.iit-btn-primary:hover { background:#0046b0; }',
-      '.iit-btn-primary:disabled { opacity:0.5; cursor:not-allowed; }',
-      '.iit-btn-secondary {',
-        'background:#f5f7fa; color:#0d1b2a; border:1px solid #dde3ec;',
-        'border-radius:6px; padding:9px 16px; font-size:13px;',
-        'font-weight:600; cursor:pointer; font-family:inherit;',
-      '}',
-      '.iit-ticket-item { padding:10px 0; border-bottom:1px solid #f0f0f0; }',
-      '.iit-ticket-item:last-child { border-bottom:none; }',
-      '.iit-ticket-title { font-size:13px; font-weight:600; color:#0d1b2a; margin-bottom:4px; }',
-      '.iit-ticket-meta { font-size:11px; color:#8a9bb0; display:flex; gap:8px; flex-wrap:wrap; }',
-      '.iit-badge { display:inline-block; padding:2px 8px; border-radius:99px; font-size:10px; font-weight:600; }',
-      '.iit-badge-open { background:#dbeafe; color:#1d4ed8; }',
-      '.iit-badge-in_progress { background:#fef9c3; color:#a16207; }',
-      '.iit-badge-in_review { background:#ede9fe; color:#6d28d9; }',
-      '.iit-badge-on_hold { background:#f3f4f6; color:#6b7280; }',
-      '.iit-badge-resolved { background:#dcfce7; color:#15803d; }',
-      '.iit-badge-closed { background:#f3f4f6; color:#6b7280; }',
+      '.iit-header{background:#0d1b2a;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}',
+      '.iit-header-title{color:white;font-size:16px;font-weight:700;}',
+      '.iit-header-title span{color:#0057d9;}',
+      '.iit-close{background:none;border:none;color:#8a9bb0;cursor:pointer;font-size:20px;line-height:1;padding:4px 8px;border-radius:4px;}',
+      '.iit-close:hover{color:white;background:rgba(255,255,255,0.1);}',
+      '.iit-tabs{display:flex;border-bottom:1px solid #dde3ec;background:#f5f7fa;flex-shrink:0;}',
+      '.iit-tab{flex:1;padding:10px;font-size:12px;font-weight:600;color:#8a9bb0;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;}',
+      '.iit-tab.active{color:#0057d9;border-bottom-color:#0057d9;background:white;}',
+      '.iit-body{padding:20px;overflow-y:auto;flex:1;}',
+      '.iit-tab-content{display:none;}',
+      '.iit-tab-content.active{display:block;}',
+      '.iit-label{display:block;font-size:12px;font-weight:600;color:#0d1b2a;margin:14px 0 4px;}',
+      '.iit-label:first-child{margin-top:0;}',
+      '.iit-input,.iit-select,.iit-textarea{width:100%;border:1px solid #dde3ec;border-radius:6px;padding:8px 10px;font-size:13px;color:#0d1b2a;box-sizing:border-box;outline:none;font-family:inherit;transition:border-color 0.15s;}',
+      '.iit-input:focus,.iit-select:focus,.iit-textarea:focus{border-color:#0057d9;box-shadow:0 0 0 3px rgba(0,87,217,0.1);}',
+      '.iit-textarea{resize:none;}',
+      '.iit-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}',
+      '.iit-context{background:#f5f7fa;border-radius:6px;padding:10px 12px;margin-top:14px;font-size:11px;color:#8a9bb0;}',
+      '.iit-context-title{font-weight:600;color:#0d1b2a;margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}',
+      '.iit-context p{margin:2px 0;}',
+      '.iit-snip-btn{width:100%;background:#f5f7fa;border:1px dashed #dde3ec;border-radius:6px;padding:9px;font-size:12px;color:#8a9bb0;cursor:pointer;margin-top:14px;font-family:inherit;transition:all 0.15s;box-sizing:border-box;}',
+      '.iit-snip-btn:hover{border-color:#0057d9;color:#0057d9;background:#f0f4ff;}',
+      '.iit-screenshot-preview{width:100%;border-radius:6px;border:1px solid #dde3ec;margin-top:8px;max-height:120px;object-fit:cover;display:none;}',
+      '.iit-error{background:#fff0f0;border:1px solid #fcc;color:#c00;border-radius:6px;padding:8px 12px;font-size:12px;margin-top:10px;display:none;}',
+      '.iit-success{background:#f0fff4;border:1px solid #9be9b8;color:#1a7a3c;border-radius:6px;padding:12px;font-size:13px;text-align:center;margin-top:10px;display:none;}',
+      '.iit-footer{padding:14px 20px;border-top:1px solid #dde3ec;display:flex;gap:8px;flex-shrink:0;}',
+      '.iit-btn-primary{flex:1;background:#0057d9;color:white;border:none;border-radius:6px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:background 0.15s;font-family:inherit;}',
+      '.iit-btn-primary:hover{background:#0046b0;}',
+      '.iit-btn-primary:disabled{opacity:0.5;cursor:not-allowed;}',
+      '.iit-btn-secondary{background:#f5f7fa;color:#0d1b2a;border:1px solid #dde3ec;border-radius:6px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}',
+      '.iit-ticket-item{padding:10px 0;border-bottom:1px solid #f0f0f0;}',
+      '.iit-ticket-item:last-child{border-bottom:none;}',
+      '.iit-ticket-title{font-size:13px;font-weight:600;color:#0d1b2a;margin-bottom:4px;}',
+      '.iit-ticket-meta{font-size:11px;color:#8a9bb0;display:flex;gap:8px;flex-wrap:wrap;}',
+      '.iit-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;}',
+      '.iit-badge-open{background:#dbeafe;color:#1d4ed8;}',
+      '.iit-badge-in_progress{background:#fef9c3;color:#a16207;}',
+      '.iit-badge-in_review{background:#ede9fe;color:#6d28d9;}',
+      '.iit-badge-on_hold{background:#f3f4f6;color:#6b7280;}',
+      '.iit-badge-resolved{background:#dcfce7;color:#15803d;}',
+      '.iit-badge-closed{background:#f3f4f6;color:#6b7280;}',
+      '#iit-snip-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999999;cursor:crosshair;}',
     ].join('');
     document.head.appendChild(style);
   }
 
-  // ── PAGE CONTEXT ────────────────────────────
   function capturePageContext() {
     return {
       url:      window.location.href,
@@ -136,25 +84,37 @@
   }
 
   function getBreadcrumbPath() {
-   // Try to detect active tab by border-bottom style
-var allButtons = document.querySelectorAll('button');
-for (var j = 0; j < allButtons.length; j++) {
-  var btn = allButtons[j];
-  var style = btn.getAttribute('style') || '';
-  var computed = window.getComputedStyle(btn);
-  // Active tab has a solid bottom border with a non-transparent color
-  if (
-    style.includes('border-bottom') &&
-    !style.includes('transparent') &&
-    btn.innerText.trim().length > 0 &&
-    btn.innerText.trim().length < 30
-  ) {
-    activeTab = btn.innerText.trim();
-    break;
+    var selectors = [
+      '[aria-label="breadcrumb"]','.breadcrumb','.breadcrumbs',
+      'nav[aria-label="Breadcrumb"]','.nav-breadcrumb'
+    ];
+    for (var i = 0; i < selectors.length; i++) {
+      var el = document.querySelector(selectors[i]);
+      if (el) return el.innerText.replace(/\n/g, ' > ').trim();
+    }
+    var pathSegments = window.location.pathname
+      .split('/').filter(Boolean)
+      .map(function(s) { return s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g,' '); })
+      .join(' > ');
+    var activeTab = null;
+    var tabSelectors = [
+      '[role="tab"][aria-selected="true"]',
+      'button[aria-selected="true"]',
+      '[data-state="active"][role="tab"]',
+    ];
+    for (var j = 0; j < tabSelectors.length; j++) {
+      var tab = document.querySelector(tabSelectors[j]);
+      if (tab && tab.innerText.trim()) { activeTab = tab.innerText.trim(); break; }
+    }
+    if (activeTab) {
+      var last = pathSegments.split(' > ').pop() || '';
+      if (activeTab.toLowerCase() !== last.toLowerCase()) {
+        pathSegments = pathSegments + ' > ' + activeTab;
+      }
+    }
+    return pathSegments;
   }
-}
 
-  // ── OPEN / CLOSE ────────────────────────────
   function openPanel() {
     isOpen = true;
     document.getElementById('iterateit-panel').style.display = 'flex';
@@ -165,18 +125,14 @@ for (var j = 0; j < allButtons.length; j++) {
     document.getElementById('iterateit-panel').style.display = 'none';
   }
 
-  // ── BUILD UI ────────────────────────────────
   function buildUI() {
     var ctx = capturePageContext();
-
-    // Floating button
     var btn = document.createElement('button');
     btn.id = 'iterateit-btn';
     btn.title = 'Log a ticket';
     btn.innerHTML = '<svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M28 8 A20 20 0 0 1 48 28" stroke="white" stroke-width="4.5" stroke-linecap="round" fill="none"/><polyline points="45,21 48,28 41,29" stroke="white" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M28 48 A20 20 0 0 1 8 28" stroke="rgba(255,255,255,0.5)" stroke-width="4.5" stroke-linecap="round" fill="none"/><polyline points="11,35 8,28 15,27" stroke="rgba(255,255,255,0.5)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="28" cy="28" r="4.5" fill="white"/></svg>';
     btn.onclick = function() { isOpen ? closePanel() : openPanel(); };
 
-    // Panel
     var panel = document.createElement('div');
     panel.id = 'iterateit-panel';
     panel.innerHTML =
@@ -220,7 +176,7 @@ for (var j = 0; j < allButtons.length; j++) {
             '<p><strong>URL:</strong> ' + ctx.url + '</p>' +
             '<p><strong>Path:</strong> ' + ctx.menuPath + '</p>' +
           '</div>' +
-          '<button class="iit-snip-btn" id="iit-snip-btn" type="button">✂️ Snip area</button>' +
+          '<button class="iit-snip-btn" id="iit-snip-btn" type="button">&#9986;&#65039; Snip area</button>' +
           '<img id="iit-screenshot-preview" class="iit-screenshot-preview" alt="Screenshot preview" />' +
           '<div id="iit-error" class="iit-error"></div>' +
           '<div id="iit-success" class="iit-success"></div>' +
@@ -237,15 +193,13 @@ for (var j = 0; j < allButtons.length; j++) {
     document.body.appendChild(btn);
     document.body.appendChild(panel);
 
-    // ── Wire up events using event delegation on panel ──
     panel.addEventListener('click', function(e) {
       var id = e.target.id;
-      if (id === 'iit-close-btn'  || id === 'iit-cancel-btn') { closePanel(); return; }
+      if (id === 'iit-close-btn' || id === 'iit-cancel-btn') { closePanel(); return; }
       if (id === 'iit-submit-btn') { submitTicket(); return; }
       if (id === 'iit-snip-btn')   { captureScreenshot(); return; }
     });
 
-    // Tab switching
     var tabs = panel.querySelectorAll('.iit-tab');
     tabs.forEach(function(tab) {
       tab.addEventListener('click', function() {
@@ -258,50 +212,55 @@ for (var j = 0; j < allButtons.length; j++) {
       });
     });
 
-    // Restore saved user
     var savedName  = localStorage.getItem('iit_name');
     var savedEmail = localStorage.getItem('iit_email');
     if (savedName)  document.getElementById('iit-name').value  = savedName;
     if (savedEmail) document.getElementById('iit-email').value = savedEmail;
   }
 
-  // ── SCREENSHOT ──────────────────────────────
- function captureScreenshot() {
+  function captureScreenshot() {
     var btn = document.getElementById('iit-snip-btn');
     btn.textContent = 'Click and drag to select area...';
 
-    // Hide widget
     document.getElementById('iterateit-btn').style.display   = 'none';
     document.getElementById('iterateit-panel').style.display = 'none';
 
-    // Create overlay
     var overlay = document.createElement('div');
     overlay.id = 'iit-snip-overlay';
-    overlay.style.cssText = [
-      'position:fixed;top:0;left:0;width:100%;height:100%;',
-      'z-index:9999999;cursor:crosshair;',
-      'background:rgba(0,0,0,0.3);',
-    ].join('');
+    overlay.style.position = 'fixed';
+    overlay.style.top      = '0';
+    overlay.style.left     = '0';
+    overlay.style.width    = '100%';
+    overlay.style.height   = '100%';
+    overlay.style.zIndex   = '9999999';
+    overlay.style.cursor   = 'crosshair';
+    overlay.style.background = 'rgba(0,0,0,0.3)';
 
-    // Instruction banner
     var banner = document.createElement('div');
-    banner.style.cssText = [
-      'position:fixed;top:20px;left:50%;transform:translateX(-50%);',
-      'background:#0057d9;color:white;padding:10px 20px;border-radius:8px;',
-      'font-size:14px;font-weight:600;z-index:99999999;',
-      'font-family:Arial,sans-serif;pointer-events:none;',
-      'box-shadow:0 4px 16px rgba(0,0,0,0.3);',
-    ].join('');
-    banner.textContent = 'Click and drag to select the area to capture. Press Esc to cancel.';
+    banner.style.position  = 'fixed';
+    banner.style.top       = '20px';
+    banner.style.left      = '50%';
+    banner.style.transform = 'translateX(-50%)';
+    banner.style.background = '#0057d9';
+    banner.style.color     = 'white';
+    banner.style.padding   = '10px 20px';
+    banner.style.borderRadius = '8px';
+    banner.style.fontSize  = '14px';
+    banner.style.fontWeight = '600';
+    banner.style.zIndex    = '99999999';
+    banner.style.fontFamily = 'Arial,sans-serif';
+    banner.style.pointerEvents = 'none';
+    banner.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
+    banner.textContent = 'Click and drag to select area. Press Esc to cancel.';
     overlay.appendChild(banner);
 
-    // Selection box
     var selBox = document.createElement('div');
-    selBox.style.cssText = [
-      'position:fixed;border:2px solid #0057d9;',
-      'background:rgba(0,87,217,0.1);pointer-events:none;display:none;',
-      'z-index:99999998;box-shadow:0 0 0 9999px rgba(0,0,0,0.4);',
-    ].join('');
+    selBox.style.position   = 'fixed';
+    selBox.style.border     = '2px solid #0057d9';
+    selBox.style.background = 'rgba(0,87,217,0.1)';
+    selBox.style.pointerEvents = 'none';
+    selBox.style.display    = 'none';
+    selBox.style.zIndex     = '99999998';
     overlay.appendChild(selBox);
     document.body.appendChild(overlay);
 
@@ -309,9 +268,9 @@ for (var j = 0; j < allButtons.length; j++) {
 
     function getCoords(e) {
       return {
-        x: e.clientX || (e.touches && e.touches[0].clientX) || 0,
-        y: e.clientY || (e.touches && e.touches[0].clientY) || 0,
-      }
+        x: e.clientX || 0,
+        y: e.clientY || 0,
+      };
     }
 
     function updateBox(x1, y1, x2, y2) {
@@ -319,10 +278,10 @@ for (var j = 0; j < allButtons.length; j++) {
       var top    = Math.min(y1, y2);
       var width  = Math.abs(x2 - x1);
       var height = Math.abs(y2 - y1);
-      selBox.style.left   = left   + 'px';
-      selBox.style.top    = top    + 'px';
-      selBox.style.width  = width  + 'px';
-      selBox.style.height = height + 'px';
+      selBox.style.left    = left   + 'px';
+      selBox.style.top     = top    + 'px';
+      selBox.style.width   = width  + 'px';
+      selBox.style.height  = height + 'px';
       selBox.style.display = 'block';
     }
 
@@ -362,14 +321,12 @@ for (var j = 0; j < allButtons.length; j++) {
       var width  = x2 - x1;
       var height = y2 - y1;
 
-      // Too small — ignore
       if (width < 10 || height < 10) {
         cleanup();
-        btn.textContent = '✂️ Snip area';
+        btn.textContent = 'Snip area';
         return;
       }
 
-      // Hide overlay before capture
       overlay.style.display = 'none';
 
       function doSnip() {
@@ -389,10 +346,10 @@ for (var j = 0; j < allButtons.length; j++) {
           var preview = document.getElementById('iit-screenshot-preview');
           preview.src = screenshotDataUrl;
           preview.style.display = 'block';
-          btn.textContent = '✅ Area captured — click to retake';
+          btn.textContent = 'Area captured - click to retake';
         })
         .catch(function() {
-          btn.textContent = '✂️ Snip area (failed — try again)';
+          btn.textContent = 'Snip area (failed - try again)';
         })
         .finally(function() {
           cleanup();
@@ -404,7 +361,7 @@ for (var j = 0; j < allButtons.length; j++) {
         s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
         s.onload = doSnip;
         s.onerror = function() {
-          btn.textContent = '✂️ Snip area (failed — try again)';
+          btn.textContent = 'Snip area (failed - try again)';
           cleanup();
         };
         document.head.appendChild(s);
@@ -416,24 +373,24 @@ for (var j = 0; j < allButtons.length; j++) {
     function onKeyDown(e) {
       if (e.key === 'Escape') {
         cleanup();
-        btn.textContent = '✂️ Snip area';
+        btn.textContent = 'Snip area';
       }
     }
 
     overlay.addEventListener('mousedown', onMouseDown);
     document.addEventListener('keydown',  onKeyDown);
   }
-  // ── SUBMIT ──────────────────────────────────
+
   function submitTicket() {
-    var name     = document.getElementById('iit-name').value.trim();
-    var email    = document.getElementById('iit-email').value.trim();
-    var title    = document.getElementById('iit-title').value.trim();
-    var desc     = document.getElementById('iit-desc').value.trim();
-    var type     = document.getElementById('iit-type').value;
-    var severity = document.getElementById('iit-severity').value;
-    var errorEl  = document.getElementById('iit-error');
-    var successEl= document.getElementById('iit-success');
-    var submitBtn= document.getElementById('iit-submit-btn');
+    var name      = document.getElementById('iit-name').value.trim();
+    var email     = document.getElementById('iit-email').value.trim();
+    var title     = document.getElementById('iit-title').value.trim();
+    var desc      = document.getElementById('iit-desc').value.trim();
+    var type      = document.getElementById('iit-type').value;
+    var severity  = document.getElementById('iit-severity').value;
+    var errorEl   = document.getElementById('iit-error');
+    var successEl = document.getElementById('iit-success');
+    var submitBtn = document.getElementById('iit-submit-btn');
 
     errorEl.style.display   = 'none';
     successEl.style.display = 'none';
@@ -459,7 +416,7 @@ for (var j = 0; j < allButtons.length; j++) {
         errorEl.textContent   = 'Error: ' + err;
         errorEl.style.display = 'block';
       } else {
-        successEl.textContent  = '✅ Ticket submitted! Thank you.';
+        successEl.textContent  = 'Ticket submitted! Thank you.';
         successEl.style.display = 'block';
         document.getElementById('iit-title').value = '';
         document.getElementById('iit-desc').value  = '';
@@ -467,7 +424,7 @@ for (var j = 0; j < allButtons.length; j++) {
         var preview = document.getElementById('iit-screenshot-preview');
         preview.style.display = 'none';
         preview.src = '';
-        document.getElementById('iit-snip-btn').textContent = '📸 Capture screenshot';
+        document.getElementById('iit-snip-btn').textContent = 'Snip area';
       }
     }
 
@@ -509,13 +466,12 @@ for (var j = 0; j < allButtons.length; j++) {
     }
   }
 
-  // ── UPLOAD SCREENSHOT ───────────────────────
   function uploadScreenshot(dataUrl, email, callback) {
     try {
       var byteString = atob(dataUrl.split(',')[1]);
       var ab = new ArrayBuffer(byteString.length);
       var ia = new Uint8Array(ab);
-      for (var i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+      for (var i = 0; i < byteString.length; i++) { ia[i] = byteString.charCodeAt(i); }
       var blob     = new Blob([ab], { type: 'image/jpeg' });
       var fileName = 'widget/' + Date.now() + '-' + email.replace('@','_') + '.jpg';
 
@@ -541,7 +497,6 @@ for (var j = 0; j < allButtons.length; j++) {
     }
   }
 
-  // ── MY TICKETS ──────────────────────────────
   function loadMyTickets() {
     var email = (document.getElementById('iit-email') || {}).value || '';
     var list  = document.getElementById('iit-tickets-list');
@@ -554,7 +509,9 @@ for (var j = 0; j < allButtons.length; j++) {
     list.innerHTML = '<p style="color:#8a9bb0;font-size:13px;margin-top:8px">Loading...</p>';
 
     fetch(
-      ITERATEIT_URL + '/rest/v1/tickets?org_id=eq.' + config.orgId + '&system_id=eq.' + config.systemId + '&select=id,title,status,severity,created_at&order=created_at.desc&limit=10',
+      ITERATEIT_URL + '/rest/v1/tickets?org_id=eq.' + config.orgId +
+      '&system_id=eq.' + config.systemId +
+      '&select=id,title,status,severity,created_at&order=created_at.desc&limit=10',
       {
         headers: {
           'apikey':        ANON_KEY,
@@ -585,7 +542,6 @@ for (var j = 0; j < allButtons.length; j++) {
     });
   }
 
-  // ── PUBLIC API ──────────────────────────────
   window.IterateIT = {
     init: function(userConfig) {
       config = userConfig;
