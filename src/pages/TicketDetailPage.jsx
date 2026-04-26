@@ -12,8 +12,8 @@ function timeAgo(dateString) {
   const now  = new Date()
   const diff = Math.floor((now - date) / 1000)
   if (diff < 60)    return 'just now'
-  if (diff < 3600)  return `${Math.floor(diff/60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`
+  if (diff < 3600)  return Math.floor(diff/60) + 'm ago'
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago'
   return date.toLocaleDateString()
 }
 
@@ -24,17 +24,15 @@ export default function TicketDetailPage() {
   const navigate = useNavigate()
   const { user, role } = useAuth()
 
-  const [ticket,      setTicket]      = useState(null)
-  const [loading,     setLoading]     = useState(true)
-  const [comment,     setComment]     = useState('')
-  const [submitting,  setSubmitting]  = useState(false)
-  const [error,       setError]       = useState('')
-
+  const [ticket,     setTicket]     = useState(null)
+  const [loading,    setLoading]    = useState(true)
+  const [comment,    setComment]    = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error,      setError]      = useState('')
+  const [previewImg, setPreviewImg] = useState(null)
   const canChangeStatus = ['super_admin','org_admin','manager'].includes(role)
 
-  useEffect(() => {
-    loadTicket()
-  }, [id])
+  useEffect(() => { loadTicket() }, [id])
 
   async function loadTicket() {
     setLoading(true)
@@ -53,13 +51,9 @@ export default function TicketDetailPage() {
     e.preventDefault()
     if (!comment.trim()) return
     setSubmitting(true)
-    const { data, error } = await addComment(id, user.id, comment)
-    if (error) {
-      setError(error.message)
-    } else {
-      setComment('')
-      await loadTicket()
-    }
+    const { error } = await addComment(id, user.id, comment)
+    if (error) setError(error.message)
+    else { setComment(''); await loadTicket() }
     setSubmitting(false)
   }
 
@@ -77,10 +71,9 @@ export default function TicketDetailPage() {
 
   return (
     <PageWrapper
-      title={`Ticket #${ticket.id.slice(0,8).toUpperCase()}`}
+      title={'Ticket #' + ticket.id.slice(0,8).toUpperCase()}
       subtitle={ticket.systems?.name}
     >
-      {/* Back button */}
       <button
         onClick={() => navigate('/tickets')}
         className="flex items-center gap-2 text-brand-steel hover:text-brand-navy text-sm mb-6 transition-colors"
@@ -111,10 +104,27 @@ export default function TicketDetailPage() {
               <p className="text-brand-steel text-sm italic">No description provided.</p>
             )}
 
+            {/* Screenshot */}
+            {ticket.screenshot_url && (
+  <div className="mt-6 pt-4 border-t border-brand-divider">
+    <p className="text-xs text-brand-steel uppercase tracking-wider mb-3">
+      Screenshot
+    </p>
+    <img
+      src={ticket.screenshot_url}
+      alt="Screenshot"
+      onClick={() => setPreviewImg(ticket.screenshot_url)}
+      className="rounded-lg border border-brand-divider w-full hover:opacity-90 transition-opacity cursor-zoom-in"
+    />
+    <p className="text-xs text-brand-steel mt-1">Click to preview full size</p>
+  </div>
+)}
             {/* Page context from widget */}
             {ticket.page_url && (
               <div className="mt-4 pt-4 border-t border-brand-divider">
-                <p className="text-xs text-brand-steel uppercase tracking-wider mb-2">Captured from</p>
+                <p className="text-xs text-brand-steel uppercase tracking-wider mb-2">
+                  Captured from
+                </p>
                 <p className="text-xs text-brand-navy font-medium">{ticket.page_title}</p>
                 <p className="text-xs text-brand-steel">{ticket.page_url}</p>
                 {ticket.menu_path && (
@@ -129,7 +139,6 @@ export default function TicketDetailPage() {
             <h3 className="font-display text-lg font-extrabold text-brand-navy mb-4">
               Comments
             </h3>
-
             {ticket.ticket_comments?.length === 0 ? (
               <p className="text-brand-steel text-sm mb-4">No comments yet.</p>
             ) : (
@@ -144,9 +153,7 @@ export default function TicketDetailPage() {
                         <span className="text-sm font-semibold text-brand-navy">
                           {c.profiles?.full_name}
                         </span>
-                        <span className="text-xs text-brand-steel">
-                          {timeAgo(c.created_at)}
-                        </span>
+                        <span className="text-xs text-brand-steel">{timeAgo(c.created_at)}</span>
                       </div>
                       <p className="text-sm text-brand-navy leading-relaxed whitespace-pre-wrap">
                         {c.body}
@@ -157,7 +164,6 @@ export default function TicketDetailPage() {
               </div>
             )}
 
-            {/* Add comment */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded px-4 py-3 mb-4">
                 {error}
@@ -179,13 +185,12 @@ export default function TicketDetailPage() {
           </div>
         </div>
 
-        {/* Sidebar meta */}
+        {/* Sidebar */}
         <div className="space-y-4">
           <div className="bg-white rounded-lg border border-brand-divider p-5">
             <h4 className="text-xs font-semibold text-brand-steel uppercase tracking-wider mb-4">
               Details
             </h4>
-
             <div className="space-y-3 text-sm">
               <div>
                 <p className="text-brand-steel text-xs mb-1">Status</p>
@@ -203,43 +208,51 @@ export default function TicketDetailPage() {
                   <Badge value={ticket.status} variant="status" />
                 )}
               </div>
-
               <div>
                 <p className="text-brand-steel text-xs mb-1">Logged by</p>
-                <p className="text-brand-navy font-medium">
-                  {ticket.profiles?.full_name || '—'}
-                </p>
+                <p className="text-brand-navy font-medium">{ticket.profiles?.full_name || '—'}</p>
               </div>
-
               <div>
                 <p className="text-brand-steel text-xs mb-1">Assigned to</p>
-                <p className="text-brand-navy font-medium">
-                  {ticket.assignee?.full_name || 'Unassigned'}
-                </p>
+                <p className="text-brand-navy font-medium">{ticket.assignee?.full_name || 'Unassigned'}</p>
               </div>
-
               <div>
                 <p className="text-brand-steel text-xs mb-1">System</p>
                 <p className="text-brand-navy font-medium">{ticket.systems?.name}</p>
               </div>
-
               <div>
                 <p className="text-brand-steel text-xs mb-1">Created</p>
-                <p className="text-brand-navy font-medium">
-                  {new Date(ticket.created_at).toLocaleDateString()}
-                </p>
+                <p className="text-brand-navy font-medium">{new Date(ticket.created_at).toLocaleDateString()}</p>
               </div>
-
               <div>
                 <p className="text-brand-steel text-xs mb-1">Last updated</p>
-                <p className="text-brand-navy font-medium">
-                  {new Date(ticket.updated_at).toLocaleDateString()}
-                </p>
+                <p className="text-brand-navy font-medium">{new Date(ticket.updated_at).toLocaleDateString()}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
+      {/* Screenshot preview modal */}
+{previewImg && (
+  <div
+    className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+    onClick={() => setPreviewImg(null)}
+  >
+    <div className="relative max-w-5xl w-full" onClick={e => e.stopPropagation()}>
+      <button
+        onClick={() => setPreviewImg(null)}
+        className="absolute -top-10 right-0 text-white hover:text-gray-300 text-sm flex items-center gap-1"
+      >
+        ✕ Close
+      </button>
+      <img
+        src={previewImg}
+        alt="Screenshot preview"
+        className="w-full rounded-lg shadow-2xl"
+      />
+    </div>
+  </div>
+)}
     </PageWrapper>
   )
 }
