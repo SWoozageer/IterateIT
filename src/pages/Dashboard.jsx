@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import PageWrapper from '../components/layout/PageWrapper'
 import Badge from '../components/ui/Badge'
@@ -226,11 +226,12 @@ export default function Dashboard() {
               </button>
             )}
             
-              href="/tickets"
-              className="text-brand-blue text-sm hover:underline"
-            >
-              View all
-            </a>
+              <Link
+  to="/tickets"
+  className="text-brand-blue text-sm hover:underline"
+>
+  View all
+</Link>
           </div>
         </div>
 
