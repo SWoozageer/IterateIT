@@ -8,6 +8,7 @@ import TicketsPage from './pages/TicketsPage'
 import NewTicketPage from './pages/NewTicketPage'
 import TicketDetailPage from './pages/TicketDetailPage'
 import UsersPage from './pages/UsersPage'
+import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
   return (
@@ -30,6 +31,11 @@ export default function App() {
         <Route path="/users" element={
           <ProtectedRoute allowedRoles={['super_admin','org_admin']}>
             <UsersPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute allowedRoles={['super_admin','org_admin']}>
+            <SettingsPage />
           </ProtectedRoute>
         } />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
