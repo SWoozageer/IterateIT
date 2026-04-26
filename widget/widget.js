@@ -6,7 +6,7 @@
 
   var config = {};
   var isOpen = false;
-  var screenshotDataUrl = null;
+  var screenshots = [];
 
   function injectStyles() {
     var style = document.createElement('style');
@@ -178,10 +178,9 @@
           '</div>' +
 '<div style="display:flex;gap:8px;margin-top:14px;">' +
   '<button class="iit-snip-btn" id="iit-snip-btn" type="button" style="flex:1;margin-top:0">&#9986;&#65039; Snip area</button>' +
-  '<button class="iit-snip-btn" id="iit-fullscreen-btn" type="button" style="flex:1;margin-top:0">&#128247; Full page</button>' +
+'<button class="iit-snip-btn" id="iit-fullscreen-btn" type="button" style="flex:1;margin-top:0">&#128247; Full page</button>' +
 '</div>' +
-          '<img id="iit-screenshot-preview" class="iit-screenshot-preview" alt="Screenshot preview" />' +
-          '<div id="iit-error" class="iit-error"></div>' +
+'<div id="iit-screenshots-container" style="margin-top:10px;"></div>' +          '<div id="iit-error" class="iit-error"></div>' +
           '<div id="iit-success" class="iit-success"></div>' +
         '</div>' +
         '<div class="iit-tab-content" id="iit-tab-my">' +
@@ -282,13 +281,12 @@ function captureFullPage() {
         scale:   0.75,
         logging: false,
       })
-      .then(function(canvas) {
-        screenshotDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        var preview = document.getElementById('iit-screenshot-preview');
-        preview.src = screenshotDataUrl;
-        preview.style.display = 'block';
-        btn.textContent = 'Full page captured - retake';
-      })
+   .then(function(canvas) {
+  var dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+  screenshots.push({ dataUrl: dataUrl, label: 'Page ' + (screenshots.length + 1) });
+  renderScreenshots();
+  btn.textContent = 'Full page';
+})
       .catch(function() {
         btn.textContent = 'Full page (failed - try again)';
       })
@@ -388,12 +386,11 @@ function captureFullPage() {
           windowHeight: document.documentElement.scrollHeight,
         })
         .then(function(canvas) {
-          screenshotDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-          var preview = document.getElementById('iit-screenshot-preview');
-          preview.src = screenshotDataUrl;
-          preview.style.display = 'block';
-          btn.textContent = 'Area captured - click to retake';
-        })
+  var dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  screenshots.push({ dataUrl: dataUrl, label: 'Snip ' + (screenshots.length + 1) });
+  renderScreenshots();
+  btn.textContent = 'Snip area';
+})
         .catch(function() {
           btn.textContent = 'Snip area (failed - try again)';
         })
@@ -426,7 +423,43 @@ function captureFullPage() {
     overlay.addEventListener('mousedown', onMouseDown);
     document.addEventListener('keydown',  onKeyDown);
   }
+function renderScreenshots() {
+    var container = document.getElementById('iit-screenshots-container');
+    if (!container) return;
 
+    if (screenshots.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    var html = '<div style="margin-bottom:6px;font-size:11px;font-weight:600;color:#0d1b2a;text-transform:uppercase;letter-spacing:0.5px;">' +
+      'Captures (' + screenshots.length + ')</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+
+    screenshots.forEach(function(shot, index) {
+      html += '<div style="position:relative;width:100px;flex-shrink:0;">' +
+        '<img src="' + shot.dataUrl + '" style="width:100px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #dde3ec;display:block;" />' +
+        '<button onclick="window.__iit_remove(' + index + ')" style="' +
+          'position:absolute;top:-6px;right:-6px;' +
+          'width:18px;height:18px;border-radius:50%;' +
+          'background:#ef4444;color:white;border:none;' +
+          'cursor:pointer;font-size:11px;line-height:1;' +
+          'display:flex;align-items:center;justify-content:center;' +
+          'box-shadow:0 2px 4px rgba(0,0,0,0.2);' +
+        '">&#x2715;</button>' +
+        '<p style="font-size:9px;color:#8a9bb0;margin:3px 0 0;text-align:center;">' + shot.label + '</p>' +
+      '</div>';
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Global remove function
+    window.__iit_remove = function(index) {
+      screenshots.splice(index, 1);
+      renderScreenshots();
+    };
+  }
   function submitTicket() {
     var name      = document.getElementById('iit-name').value.trim();
     var email     = document.getElementById('iit-email').value.trim();
@@ -466,11 +499,9 @@ function captureFullPage() {
         successEl.style.display = 'block';
         document.getElementById('iit-title').value = '';
         document.getElementById('iit-desc').value  = '';
-        screenshotDataUrl = null;
-        var preview = document.getElementById('iit-screenshot-preview');
-        preview.style.display = 'none';
-        preview.src = '';
-        document.getElementById('iit-snip-btn').textContent = 'Snip area';
+        screenshots = [];
+renderScreenshots();
+document.getElementById('iit-snip-btn').textContent = 'Snip area';
 document.getElementById('iit-fullscreen-btn').textContent = 'Full page';
       }
     }
@@ -506,11 +537,21 @@ document.getElementById('iit-fullscreen-btn').textContent = 'Full page';
       .catch(function(e) { finish(e.message); });
     }
 
-    if (screenshotDataUrl) {
-      uploadScreenshot(screenshotDataUrl, email, function(url) { doSubmit(url); });
-    } else {
-      doSubmit(null);
-    }
+    if (screenshots.length > 0) {
+  var urls = [];
+  var pending = screenshots.length;
+  screenshots.forEach(function(shot, i) {
+    uploadScreenshot(shot.dataUrl, email + '_' + i, function(url) {
+      if (url) urls.push(url);
+      pending--;
+      if (pending === 0) {
+        doSubmit(urls.join(','));
+      }
+    });
+  });
+} else {
+  doSubmit(null);
+}
   }
 
   function uploadScreenshot(dataUrl, email, callback) {
