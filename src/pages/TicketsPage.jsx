@@ -6,6 +6,7 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import { getTickets } from '../services/ticketService'
 import { useAuth } from '../context/AuthContext'
+import { getSystems } from '../services/systemService'
 
 function timeAgo(dateString) {
   const date = new Date(dateString)
@@ -27,12 +28,26 @@ export default function TicketsPage() {
   const [searchQuery,    setSearchQuery]    = useState('')
   const [statusFilter,   setStatusFilter]   = useState('')
   const [severityFilter, setSeverityFilter] = useState('')
+  const [systems,      setSystems]      = useState([])
+const [systemFilter, setSystemFilter] = useState('')
 
-  useEffect(() => { loadTickets() }, [statusFilter])
+  useEffect(() => {
+  loadSystems()
+  loadTickets()
+}, [statusFilter, systemFilter])
+
+async function loadSystems() {
+  const { data } = await getSystems()
+  if (data) setSystems(data)
+}
 
   async function loadTickets() {
     setLoading(true)
-    const { data, error } = await getTickets({ orgId, status: statusFilter || undefined })
+    const { data, error } = await getTickets({
+  orgId,
+  status:   statusFilter  || undefined,
+  systemId: systemFilter  || undefined,
+})
     if (error) setError(error.message)
     else setTickets(data || [])
     setLoading(false)
@@ -66,6 +81,16 @@ export default function TicketsPage() {
             className="w-full pl-9 pr-4 py-2 text-sm border border-brand-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white"
           />
         </div>
+        <select
+  value={systemFilter}
+  onChange={e => setSystemFilter(e.target.value)}
+  className="text-sm border border-brand-divider rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue text-brand-navy"
+>
+  <option value="">All Systems</option>
+  {systems.map(s => (
+    <option key={s.id} value={s.id}>{s.name}</option>
+  ))}
+</select>
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}

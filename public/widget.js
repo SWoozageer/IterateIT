@@ -220,7 +220,7 @@ for (var j = 0; j < allButtons.length; j++) {
             '<p><strong>URL:</strong> ' + ctx.url + '</p>' +
             '<p><strong>Path:</strong> ' + ctx.menuPath + '</p>' +
           '</div>' +
-          '<button class="iit-snip-btn" id="iit-snip-btn" type="button">&#128247; Capture screenshot</button>' +
+          '<button class="iit-snip-btn" id="iit-snip-btn" type="button">✂️ Snip area</button>' +
           '<img id="iit-screenshot-preview" class="iit-screenshot-preview" alt="Screenshot preview" />' +
           '<div id="iit-error" class="iit-error"></div>' +
           '<div id="iit-success" class="iit-success"></div>' +
@@ -266,47 +266,163 @@ for (var j = 0; j < allButtons.length; j++) {
   }
 
   // ── SCREENSHOT ──────────────────────────────
-  function captureScreenshot() {
+ function captureScreenshot() {
     var btn = document.getElementById('iit-snip-btn');
-    btn.textContent = 'Capturing...';
+    btn.textContent = 'Click and drag to select area...';
 
-    // Hide widget temporarily
+    // Hide widget
     document.getElementById('iterateit-btn').style.display   = 'none';
     document.getElementById('iterateit-panel').style.display = 'none';
 
-    function doCapture() {
-      window.html2canvas(document.body, { useCORS: true, scale: 0.75, logging: false })
+    // Create overlay
+    var overlay = document.createElement('div');
+    overlay.id = 'iit-snip-overlay';
+    overlay.style.cssText = [
+      'position:fixed;top:0;left:0;width:100%;height:100%;',
+      'z-index:9999999;cursor:crosshair;',
+      'background:rgba(0,0,0,0.3);',
+    ].join('');
+
+    // Instruction banner
+    var banner = document.createElement('div');
+    banner.style.cssText = [
+      'position:fixed;top:20px;left:50%;transform:translateX(-50%);',
+      'background:#0057d9;color:white;padding:10px 20px;border-radius:8px;',
+      'font-size:14px;font-weight:600;z-index:99999999;',
+      'font-family:Arial,sans-serif;pointer-events:none;',
+      'box-shadow:0 4px 16px rgba(0,0,0,0.3);',
+    ].join('');
+    banner.textContent = 'Click and drag to select the area to capture. Press Esc to cancel.';
+    overlay.appendChild(banner);
+
+    // Selection box
+    var selBox = document.createElement('div');
+    selBox.style.cssText = [
+      'position:fixed;border:2px solid #0057d9;',
+      'background:rgba(0,87,217,0.1);pointer-events:none;display:none;',
+      'z-index:99999998;box-shadow:0 0 0 9999px rgba(0,0,0,0.4);',
+    ].join('');
+    overlay.appendChild(selBox);
+    document.body.appendChild(overlay);
+
+    var startX, startY, isDragging = false;
+
+    function getCoords(e) {
+      return {
+        x: e.clientX || (e.touches && e.touches[0].clientX) || 0,
+        y: e.clientY || (e.touches && e.touches[0].clientY) || 0,
+      }
+    }
+
+    function updateBox(x1, y1, x2, y2) {
+      var left   = Math.min(x1, x2);
+      var top    = Math.min(y1, y2);
+      var width  = Math.abs(x2 - x1);
+      var height = Math.abs(y2 - y1);
+      selBox.style.left   = left   + 'px';
+      selBox.style.top    = top    + 'px';
+      selBox.style.width  = width  + 'px';
+      selBox.style.height = height + 'px';
+      selBox.style.display = 'block';
+    }
+
+    function cleanup() {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup',   onMouseUp);
+      document.removeEventListener('keydown',   onKeyDown);
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      document.getElementById('iterateit-btn').style.display   = 'flex';
+      document.getElementById('iterateit-panel').style.display = 'flex';
+    }
+
+    function onMouseDown(e) {
+      e.preventDefault();
+      isDragging = true;
+      var coords = getCoords(e);
+      startX = coords.x;
+      startY = coords.y;
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup',   onMouseUp);
+    }
+
+    function onMouseMove(e) {
+      if (!isDragging) return;
+      var coords = getCoords(e);
+      updateBox(startX, startY, coords.x, coords.y);
+    }
+
+    function onMouseUp(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      var coords = getCoords(e);
+      var x1 = Math.min(startX, coords.x);
+      var y1 = Math.min(startY, coords.y);
+      var x2 = Math.max(startX, coords.x);
+      var y2 = Math.max(startY, coords.y);
+      var width  = x2 - x1;
+      var height = y2 - y1;
+
+      // Too small — ignore
+      if (width < 10 || height < 10) {
+        cleanup();
+        btn.textContent = '✂️ Snip area';
+        return;
+      }
+
+      // Hide overlay before capture
+      overlay.style.display = 'none';
+
+      function doSnip() {
+        window.html2canvas(document.body, {
+          useCORS: true,
+          scale:   window.devicePixelRatio || 1,
+          logging: false,
+          x:       x1 + window.scrollX,
+          y:       y1 + window.scrollY,
+          width:   width,
+          height:  height,
+          windowWidth:  document.documentElement.scrollWidth,
+          windowHeight: document.documentElement.scrollHeight,
+        })
         .then(function(canvas) {
-          screenshotDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          screenshotDataUrl = canvas.toDataURL('image/jpeg', 0.9);
           var preview = document.getElementById('iit-screenshot-preview');
           preview.src = screenshotDataUrl;
           preview.style.display = 'block';
-          btn.textContent = '✅ Screenshot captured — click to retake';
+          btn.textContent = '✅ Area captured — click to retake';
         })
         .catch(function() {
-          btn.textContent = '📸 Capture screenshot (failed — try again)';
+          btn.textContent = '✂️ Snip area (failed — try again)';
         })
         .finally(function() {
-          document.getElementById('iterateit-btn').style.display = 'flex';
-          document.getElementById('iterateit-panel').style.display = 'flex';
+          cleanup();
         });
+      }
+
+      if (!window.html2canvas) {
+        var s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload = doSnip;
+        s.onerror = function() {
+          btn.textContent = '✂️ Snip area (failed — try again)';
+          cleanup();
+        };
+        document.head.appendChild(s);
+      } else {
+        doSnip();
+      }
     }
 
-    if (!window.html2canvas) {
-      var s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-      s.onload = doCapture;
-      s.onerror = function() {
-        btn.textContent = '📸 Capture screenshot (failed — try again)';
-        document.getElementById('iterateit-btn').style.display = 'flex';
-        document.getElementById('iterateit-panel').style.display = 'flex';
-      };
-      document.head.appendChild(s);
-    } else {
-      doCapture();
+    function onKeyDown(e) {
+      if (e.key === 'Escape') {
+        cleanup();
+        btn.textContent = '✂️ Snip area';
+      }
     }
+
+    overlay.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown',  onKeyDown);
   }
-
   // ── SUBMIT ──────────────────────────────────
   function submitTicket() {
     var name     = document.getElementById('iit-name').value.trim();
