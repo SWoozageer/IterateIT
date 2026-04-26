@@ -143,9 +143,20 @@ function SystemCard({ system, widgetKeys, orgId, defaultUserId, onRefresh }) {
           {system.description && (
             <p className="text-brand-steel text-sm mt-0.5">{system.description}</p>
           )}
-          <p className="text-xs text-brand-steel mt-1 font-mono">
-            System ID: {system.id}
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+  <p className="text-xs text-brand-steel font-mono">
+    System ID: {system.id}
+  </p>
+  <button
+    onClick={() => copyToClipboard(system.id, 'systemid')}
+    className="text-brand-steel hover:text-brand-blue transition-colors flex-shrink-0"
+    title="Copy System ID"
+  >
+    {copied === 'systemid'
+      ? <Check size={12} className="text-green-500" />
+      : <Copy size={12} />}
+  </button>
+</div>
         </div>
         <button
           onClick={deleteSystem}
