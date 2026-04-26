@@ -104,19 +104,29 @@ export default function TicketDetailPage() {
               <p className="text-brand-steel text-sm italic">No description provided.</p>
             )}
 
-            {/* Screenshot */}
-            {ticket.screenshot_url && (
+ {/* Screenshots */}
+{ticket.screenshot_url && (
   <div className="mt-6 pt-4 border-t border-brand-divider">
     <p className="text-xs text-brand-steel uppercase tracking-wider mb-3">
-      Screenshot
+      Screenshots ({ticket.screenshot_url.split(',').filter(Boolean).length})
     </p>
-    <img
-      src={ticket.screenshot_url}
-      alt="Screenshot"
-      onClick={() => setPreviewImg(ticket.screenshot_url)}
-      className="rounded-lg border border-brand-divider w-full hover:opacity-90 transition-opacity cursor-zoom-in"
-    />
-    <p className="text-xs text-brand-steel mt-1">Click to preview full size</p>
+    <div className="grid grid-cols-2 gap-3">
+      {ticket.screenshot_url.split(',').filter(Boolean).map((url, index) => (
+        <div key={index} className="relative">
+          <img
+            src={url.trim()}
+            alt={'Screenshot ' + (index + 1)}
+            onClick={() => setPreviewImg(url.trim())}
+            className="rounded-lg border border-brand-divider w-full hover:opacity-90 transition-opacity cursor-zoom-in object-cover"
+            style={{ height: '120px' }}
+          />
+          <span className="absolute bottom-1 left-1 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded">
+            {index + 1}
+          </span>
+        </div>
+      ))}
+    </div>
+    <p className="text-xs text-brand-steel mt-2">Click any image to preview full size</p>
   </div>
 )}
             {/* Page context from widget */}
