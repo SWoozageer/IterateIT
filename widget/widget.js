@@ -589,16 +589,15 @@ document.getElementById('iit-fullscreen-btn').textContent = 'Full page';
     var email = (document.getElementById('iit-email') || {}).value || '';
     var list  = document.getElementById('iit-tickets-list');
 
-    if (!email.trim()) {
-      list.innerHTML = '<p style="color:#8a9bb0;font-size:13px;margin-top:8px">Enter your email on the Log Ticket tab first.</p>';
-      return;
-    }
+    
 
     list.innerHTML = '<p style="color:#8a9bb0;font-size:13px;margin-top:8px">Loading...</p>';
 
     fetch(
+     fetch(
       ITERATEIT_URL + '/rest/v1/tickets?org_id=eq.' + config.orgId +
       '&system_id=eq.' + config.systemId +
+      '&created_by=eq.' + config.defaultUserId +
       '&select=id,title,status,severity,type,created_at,updated_at&order=created_at.desc&limit=50',
       {
         headers: {
