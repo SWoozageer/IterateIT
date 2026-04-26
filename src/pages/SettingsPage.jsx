@@ -363,7 +363,185 @@ function NewSystemModal({ orgId, onClose, onSuccess }) {
     </div>
   )
 }
+// ── Integration Guide ────────────────────────
+function IntegrationGuide() {
+  const [open, setOpen] = useState(false)
 
+  const frameworks = [
+    {
+      files: 'next.config.js + src/app/ folder',
+      framework: 'Next.js',
+      tab: 'Next.js',
+      colour: 'bg-black text-white',
+    },
+    {
+      files: 'vite.config.js + src/main.jsx',
+      framework: 'React (Vite)',
+      tab: 'React (Vite)',
+      colour: 'bg-blue-500 text-white',
+    },
+    {
+      files: 'vue.config.js or .vue files',
+      framework: 'Vue.js',
+      tab: 'Vue.js',
+      colour: 'bg-green-500 text-white',
+    },
+    {
+      files: 'Just .html files, no config file',
+      framework: 'Plain HTML',
+      tab: 'Plain HTML',
+      colour: 'bg-orange-400 text-white',
+    },
+  ]
+
+  const steps = [
+    { num: '1', title: 'Add your app as a System', desc: 'Click "Add System" above. Give it a clear name (e.g., "HR Portal") and description.' },
+    { num: '2', title: 'Generate a Widget Key', desc: 'Click "Generate Key" on your new system. This is a secure API key scoped only to that app.' },
+    { num: '3', title: 'Identify your framework', desc: 'Look at your project files (see table below) to determine which framework your app uses.' },
+    { num: '4', title: 'Copy the embed code', desc: 'Click "Show embed code", select the correct framework tab, and copy the code.' },
+    { num: '5', title: 'Paste into your layout file', desc: 'Add the code once into your app\'s root layout file. The widget will appear on every page automatically.' },
+    { num: '6', title: 'Add aria standards', desc: 'For active tabs, add aria-selected="true" to the active button. For breadcrumbs, add aria-label="breadcrumb" to the nav element. This enables automatic tab and path detection.' },
+    { num: '7', title: 'Deploy your app', desc: 'Commit, push, and deploy. The widget will appear in the bottom-right corner of every page.' },
+  ]
+
+  return (
+    <div className="bg-white rounded-lg border border-brand-divider overflow-hidden">
+      {/* Header — clickable to expand/collapse */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-brand-off-white transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-brand-blue flex items-center justify-center">
+            <span className="text-white text-sm font-bold">?</span>
+          </div>
+          <div className="text-left">
+            <p className="font-display text-base font-extrabold text-brand-navy">
+              Integration Guide
+            </p>
+            <p className="text-brand-steel text-xs">
+              How to add the widget to any app — step by step
+            </p>
+          </div>
+        </div>
+        <span className="text-brand-steel text-lg">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="px-6 pb-6 border-t border-brand-divider">
+
+          {/* Steps */}
+          <div className="mt-5 mb-6">
+            <h4 className="text-xs font-semibold text-brand-steel uppercase tracking-wider mb-4">
+              Step-by-Step Process
+            </h4>
+            <div className="space-y-3">
+              {steps.map(step => (
+                <div key={step.num} className="flex gap-4">
+                  <div className="w-7 h-7 rounded-full bg-brand-blue text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                    {step.num}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-brand-navy">{step.title}</p>
+                    <p className="text-xs text-brand-steel mt-0.5 leading-relaxed">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Framework detection */}
+          <div className="mb-6">
+            <h4 className="text-xs font-semibold text-brand-steel uppercase tracking-wider mb-4">
+              How to Identify Your Framework
+            </h4>
+            <p className="text-xs text-brand-steel mb-3">
+              Open your project folder and look for these files:
+            </p>
+            <div className="rounded-lg border border-brand-divider overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-brand-off-white border-b border-brand-divider">
+                    <th className="text-left px-4 py-2.5 text-brand-steel font-semibold text-xs uppercase tracking-wider">
+                      Files you see in the project
+                    </th>
+                    <th className="text-left px-4 py-2.5 text-brand-steel font-semibold text-xs uppercase tracking-wider">
+                      Framework
+                    </th>
+                    <th className="text-left px-4 py-2.5 text-brand-steel font-semibold text-xs uppercase tracking-wider">
+                      Select this tab
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-brand-divider">
+                  {frameworks.map(f => (
+                    <tr key={f.framework}>
+                      <td className="px-4 py-3">
+                        <code className="text-xs bg-brand-off-white px-2 py-1 rounded text-brand-navy">
+                          {f.files}
+                        </code>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${f.colour}`}>
+                          {f.framework}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-brand-steel">
+                        "{f.tab}" tab in embed code
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Aria standards */}
+          <div className="mb-6">
+            <h4 className="text-xs font-semibold text-brand-steel uppercase tracking-wider mb-4">
+              Required Code Standards for Full Widget Functionality
+            </h4>
+            <div className="space-y-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-xs font-semibold text-blue-700 mb-1">
+                  Active Tab Detection
+                </p>
+                <p className="text-xs text-blue-600 mb-2">
+                  Add <code className="bg-blue-100 px-1 rounded">aria-selected="true"</code> to the active tab button and <code className="bg-blue-100 px-1 rounded">aria-selected="false"</code> to all others. Update dynamically when the tab changes.
+                </p>
+                <pre className="bg-blue-900 text-blue-100 text-xs rounded p-3 overflow-x-auto">{`<button aria-selected={activeTab === 'milestones'}>
+  Milestones
+</button>`}</pre>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-xs font-semibold text-green-700 mb-1">
+                  Breadcrumb Path Detection
+                </p>
+                <p className="text-xs text-green-600 mb-2">
+                  Wrap your breadcrumb in a <code className="bg-green-100 px-1 rounded">nav</code> element with <code className="bg-green-100 px-1 rounded">aria-label="breadcrumb"</code>.
+                </p>
+                <pre className="bg-green-900 text-green-100 text-xs rounded p-3 overflow-x-auto">{`<nav aria-label="breadcrumb">
+  <span>Home</span> › <span>Projects</span>
+</nav>`}</pre>
+              </div>
+            </div>
+          </div>
+
+          {/* Tip */}
+          <div className="bg-brand-off-white rounded-lg px-4 py-3">
+            <p className="text-xs font-semibold text-brand-navy mb-1">
+              💡 Pro tip — Tell Claude upfront
+            </p>
+            <p className="text-xs text-brand-steel">
+              When starting a new app with Claude, say: <em>"This app will use the IterateIT widget. Please add aria-selected to all active tabs and aria-label='breadcrumb' to all breadcrumb navs throughout the build."</em> Claude will apply these standards automatically from the start.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 // ── Main Page ────────────────────────────────
 export default function SettingsPage() {
   const { orgId, user } = useAuth()
@@ -399,6 +577,8 @@ export default function SettingsPage() {
       {loading ? (
         <div className="text-brand-steel text-sm animate-pulse">Loading...</div>
       ) : systems.length === 0 ? (
+        <>
+        <IntegrationGuide /> 
         <div className="bg-white rounded-lg border border-brand-divider p-12 text-center">
           <p className="text-brand-steel text-sm mb-4">
             No systems yet. Add your first system to get the widget embed code.
@@ -407,8 +587,10 @@ export default function SettingsPage() {
             <Plus size={16} /> Add Your First System
           </Button>
         </div>
+        </>
       ) : (
         <div className="space-y-6">
+          <IntegrationGuide />
           {systems.map(system => (
             <SystemCard
               key={system.id}
