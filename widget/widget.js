@@ -290,41 +290,96 @@
   function loadMyTickets() {
     var list = document.getElementById('iit-tickets-list');
     list.innerHTML = '<p style="color:#8a9bb0;font-size:13px;margin-top:8px">Loading...</p>';
+    var currentFilter = null;
+
     var statusOrder = ['open', 'in_progress', 'in_review', 'on_hold', 'resolved', 'closed'];
     var statusLabels = { open: 'Open', in_progress: 'In Progress', in_review: 'In Review', on_hold: 'On Hold', resolved: 'Resolved', closed: 'Closed' };
     var statusBg = { open: '#dbeafe', in_progress: '#fef9c3', in_review: '#ede9fe', on_hold: '#f3f4f6', resolved: '#dcfce7', closed: '#f3f4f6' };
     var statusColor = { open: '#1d4ed8', in_progress: '#a16207', in_review: '#6d28d9', on_hold: '#6b7280', resolved: '#15803d', closed: '#6b7280' };
+
     fetch(ITERATEIT_URL + '/rest/v1/tickets?org_id=eq.' + config.orgId + '&system_id=eq.' + config.systemId + '&created_by=eq.' + config.defaultUserId + '&select=id,title,status,severity,type,created_at&order=created_at.desc&limit=50', {
       headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY, 'x-widget-key': config.apiKey }
     })
     .then(function(res) { return res.json(); })
     .then(function(tickets) {
       if (!tickets.length) { list.innerHTML = '<p style="color:#8a9bb0;font-size:13px;margin-top:8px">No tickets found.</p>'; return; }
-      var grouped = {};
-      statusOrder.forEach(function(s) { grouped[s] = []; });
-      tickets.forEach(function(t) { if (grouped[t.status]) grouped[t.status].push(t); });
-      var open = grouped['open'].length;
-      var inProg = grouped['in_progress'].length;
-      var resolved = grouped['resolved'].length + grouped['closed'].length;
-      var html = '<div style="display:flex;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #f0f0f0;">' +
-        '<div style="flex:1;text-align:center;background:#dbeafe;border-radius:8px;padding:8px 4px;"><div style="font-size:18px;font-weight:700;color:#1d4ed8;">' + open + '</div><div style="font-size:9px;color:#1d4ed8;font-weight:600;">OPEN</div></div>' +
-        '<div style="flex:1;text-align:center;background:#fef9c3;border-radius:8px;padding:8px 4px;"><div style="font-size:18px;font-weight:700;color:#a16207;">' + inProg + '</div><div style="font-size:9px;color:#a16207;font-weight:600;">IN PROGRESS</div></div>' +
-        '<div style="flex:1;text-align:center;background:#dcfce7;border-radius:8px;padding:8px 4px;"><div style="font-size:18px;font-weight:700;color:#15803d;">' + resolved + '</div><div style="font-size:9px;color:#15803d;font-weight:600;">RESOLVED</div></div>' +
-      '</div>';
-      statusOrder.forEach(function(status) {
-        var group = grouped[status];
-        if (!group.length) return;
-        html += '<div style="margin-bottom:16px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:10px;font-weight:600;background:' + statusBg[status] + ';color:' + statusColor[status] + ';">' + statusLabels[status] + '</span><span style="font-size:11px;color:#8a9bb0;">' + group.length + ' ticket' + (group.length > 1 ? 's' : '') + '</span></div>';
-        group.forEach(function(t) {
-          html += '<div class="iit-ticket-item"><div style="font-size:12px;font-weight:600;color:#0d1b2a;margin-bottom:4px;">' + t.title + '</div><div style="font-size:11px;color:#8a9bb0;display:flex;gap:8px;"><span>' + t.severity + '</span><span>' + t.type.replace('_', ' ') + '</span><span>' + new Date(t.created_at).toLocaleDateString() + '</span></div></div>';
-        });
+
+      function renderList(filter) {
+        currentFilter = filter;
+        var grouped = {};
+        statusOrder.forEach(function(s) { grouped[s] = []; });
+        tickets.forEach(function(t) { if (grouped[t.status]) grouped[t.status].push(t); });
+
+        var open    = grouped['open'].length;
+        var inProg  = grouped['in_progress'].length;
+        var resolved = grouped['resolved'].length + grouped['closed'].length;
+
+        // Summary cards
+        var html = '<div style="display:flex;gap:8px;margin-bottom:16px;">';
+
+        // All card
+        html += '<div onclick="window.__iit_filter(null)" style="flex:1;text-align:center;background:' + (!filter ? '#0057d9' : '#f5f7fa') + ';border-radius:8px;padding:8px 4px;cursor:pointer;border:2px solid ' + (!filter ? '#0057d9' : '#dde3ec') + ';">' +
+          '<div style="font-size:16px;font-weight:700;color:' + (!filter ? 'white' : '#0d1b2a') + ';">' + tickets.length + '</div>' +
+          '<div style="font-size:9px;color:' + (!filter ? 'white' : '#8a9bb0') + ';font-weight:600;">ALL</div>' +
+        '</div>';
+
+        // Open card
+        html += '<div onclick="window.__iit_filter(\'open\')" style="flex:1;text-align:center;background:' + (filter === 'open' ? '#1d4ed8' : '#dbeafe') + ';border-radius:8px;padding:8px 4px;cursor:pointer;border:2px solid ' + (filter === 'open' ? '#1d4ed8' : '#dbeafe') + ';">' +
+          '<div style="font-size:16px;font-weight:700;color:' + (filter === 'open' ? 'white' : '#1d4ed8') + ';">' + open + '</div>' +
+          '<div style="font-size:9px;color:' + (filter === 'open' ? 'white' : '#1d4ed8') + ';font-weight:600;">OPEN</div>' +
+        '</div>';
+
+        // In Progress card
+        html += '<div onclick="window.__iit_filter(\'in_progress\')" style="flex:1;text-align:center;background:' + (filter === 'in_progress' ? '#a16207' : '#fef9c3') + ';border-radius:8px;padding:8px 4px;cursor:pointer;border:2px solid ' + (filter === 'in_progress' ? '#a16207' : '#fef9c3') + ';">' +
+          '<div style="font-size:16px;font-weight:700;color:' + (filter === 'in_progress' ? 'white' : '#a16207') + ';">' + inProg + '</div>' +
+          '<div style="font-size:9px;color:' + (filter === 'in_progress' ? 'white' : '#a16207') + ';font-weight:600;">IN PROGRESS</div>' +
+        '</div>';
+
+        // Resolved card
+        html += '<div onclick="window.__iit_filter(\'resolved\')" style="flex:1;text-align:center;background:' + (filter === 'resolved' ? '#15803d' : '#dcfce7') + ';border-radius:8px;padding:8px 4px;cursor:pointer;border:2px solid ' + (filter === 'resolved' ? '#15803d' : '#dcfce7') + ';">' +
+          '<div style="font-size:16px;font-weight:700;color:' + (filter === 'resolved' ? 'white' : '#15803d') + ';">' + resolved + '</div>' +
+          '<div style="font-size:9px;color:' + (filter === 'resolved' ? 'white' : '#15803d') + ';font-weight:600;">RESOLVED</div>' +
+        '</div>';
+
         html += '</div>';
-      });
-      list.innerHTML = html;
+
+        // Filter tickets
+        var filtered = filter === null ? tickets :
+          filter === 'resolved' ? tickets.filter(function(t) { return t.status === 'resolved' || t.status === 'closed'; }) :
+          tickets.filter(function(t) { return t.status === filter; });
+
+        if (!filtered.length) {
+          html += '<p style="color:#8a9bb0;font-size:13px;text-align:center;margin-top:8px">No tickets in this status.</p>';
+        } else {
+          // Group filtered tickets by status
+          var filteredGrouped = {};
+          statusOrder.forEach(function(s) { filteredGrouped[s] = []; });
+          filtered.forEach(function(t) { if (filteredGrouped[t.status]) filteredGrouped[t.status].push(t); });
+
+          statusOrder.forEach(function(status) {
+            var group = filteredGrouped[status];
+            if (!group.length) return;
+            html += '<div style="margin-bottom:12px;">';
+            if (filter === null) {
+              html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:10px;font-weight:600;background:' + statusBg[status] + ';color:' + statusColor[status] + ';">' + statusLabels[status] + '</span><span style="font-size:11px;color:#8a9bb0;">' + group.length + ' ticket' + (group.length > 1 ? 's' : '') + '</span></div>';
+            }
+            group.forEach(function(t) {
+              html += '<div class="iit-ticket-item"><div style="font-size:12px;font-weight:600;color:#0d1b2a;margin-bottom:4px;">' + t.title + '</div><div style="font-size:11px;color:#8a9bb0;display:flex;gap:8px;flex-wrap:wrap;"><span style="display:inline-block;padding:1px 6px;border-radius:99px;font-size:9px;font-weight:600;background:' + statusBg[t.status] + ';color:' + statusColor[t.status] + ';">' + statusLabels[t.status] + '</span><span>' + t.severity + '</span><span>' + t.type.replace('_', ' ') + '</span><span>' + new Date(t.created_at).toLocaleDateString() + '</span></div></div>';
+            });
+            html += '</div>';
+          });
+        }
+
+        list.innerHTML = html;
+
+        // Wire up filter clicks
+        window.__iit_filter = function(f) { renderList(f); };
+      }
+
+      renderList(null);
     })
     .catch(function() { list.innerHTML = '<p style="color:#c00;font-size:13px">Failed to load tickets.</p>'; });
   }
-
   window.IterateIT = {
     init: function(userConfig) {
       config = userConfig;
