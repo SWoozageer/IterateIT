@@ -171,17 +171,25 @@
       overlay.style.display = 'none';
       function doSnip() {
         setTimeout(function() {
-        window.html2canvas(document.body, { useCORS:true, scale:window.devicePixelRatio||1, logging:false, x:x1+window.scrollX, y:y1+window.scrollY, width:w, height:h, windowWidth:document.documentElement.scrollWidth, windowHeight:document.documentElement.scrollHeight })
-        .then(function(canvas) {
-          screenshots.push({ dataUrl: canvas.toDataURL('image/jpeg', 0.9), label: 'Snip ' + (screenshots.length+1) });
-          renderScreenshots(); btn.textContent = 'Snip area';
+        window.domtoimage.toJpeg(document.body, { quality: 0.9 })
+        .then(function(fullDataUrl) {
+          var img = new Image();
+          img.onload = function() {
+            var canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            var ctx2 = canvas.getContext('2d');
+            ctx2.drawImage(img, x1, y1, w, h, 0, 0, w, h);
+            screenshots.push({ dataUrl: canvas.toDataURL('image/jpeg', 0.9), label: 'Snip ' + (screenshots.length+1) });
+            renderScreenshots(); btn.textContent = 'Snip area';
+          };
+          img.src = fullDataUrl;
         })
         .catch(function() { btn.textContent = 'Snip area (failed)'; })
         .finally(function() { cleanup(); });
         }, 800);
       }
-      if (!window.html2canvas) {
-        var s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      if (!window.domtoimage) {
+        var s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js';
         s.onload = doSnip; s.onerror = function() { btn.textContent = 'Snip area (failed)'; cleanup(); };
         document.head.appendChild(s);
       } else { doSnip(); }
@@ -198,9 +206,9 @@
     document.getElementById('iterateit-panel').style.display = 'none';
     function doCapture() {
       setTimeout(function() {
-      window.html2canvas(document.body, { useCORS:true, scale:0.75, logging:false })
-      .then(function(canvas) {
-        screenshots.push({ dataUrl: canvas.toDataURL('image/jpeg', 0.7), label: 'Page ' + (screenshots.length+1) });
+      window.domtoimage.toJpeg(document.body, { quality: 0.7 })
+      .then(function(dataUrl) {
+        screenshots.push({ dataUrl: dataUrl, label: 'Page ' + (screenshots.length+1) });
         renderScreenshots(); btn.textContent = 'Full page';
       })
       .catch(function() { btn.textContent = 'Full page (failed)'; })
@@ -210,8 +218,8 @@
       });
       }, 800);
     }
-    if (!window.html2canvas) {
-      var s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    if (!window.domtoimage) {
+      var s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js';
       s.onload = doCapture; s.onerror = function() { btn.textContent = 'Full page (failed)'; document.getElementById('iterateit-btn').style.display = 'flex'; document.getElementById('iterateit-panel').style.display = 'flex'; };
       document.head.appendChild(s);
     } else { doCapture(); }
