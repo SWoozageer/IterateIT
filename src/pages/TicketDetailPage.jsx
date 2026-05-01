@@ -219,9 +219,14 @@ export default function TicketDetailPage() {
                 )}
               </div>
               <div>
-                <p className="text-brand-steel text-xs mb-1">Logged by</p>
-                <p className="text-brand-navy font-medium">{ticket.profiles?.full_name || '—'}</p>
-              </div>
+  <p className="text-brand-steel text-xs mb-1">Logged by</p>
+  <p className="text-brand-navy font-medium">
+    {ticket.reporter_name || ticket.profiles?.full_name || '—'}
+  </p>
+  {ticket.reporter_email && (
+    <p className="text-brand-steel text-xs">{ticket.reporter_email}</p>
+  )}
+</div>
               <div>
                 <p className="text-brand-steel text-xs mb-1">Assigned to</p>
                 <p className="text-brand-navy font-medium">{ticket.assignee?.full_name || 'Unassigned'}</p>

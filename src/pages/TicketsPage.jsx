@@ -159,7 +159,9 @@ async function loadSystems() {
                   <td className="px-4 py-4"><Badge value={ticket.type} variant="type" /></td>
                   <td className="px-4 py-4"><Badge value={ticket.severity} variant="severity" /></td>
                   <td className="px-4 py-4"><Badge value={ticket.status} variant="status" /></td>
-                  <td className="px-4 py-4 text-brand-steel">{ticket.profiles?.full_name || 'n/a'}</td>
+                  <td className="px-4 py-4 text-brand-steel">
+  {ticket.reporter_name || ticket.profiles?.full_name || 'n/a'}
+</td>
                   <td className="px-4 py-4 text-brand-steel">{timeAgo(ticket.created_at)}</td>
                 </tr>
               ))}
