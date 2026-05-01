@@ -48,6 +48,7 @@ export default function InviteUserModal({ onClose, onSuccess }) {
     let userId = null
 
     // Try admin invite first (sends magic link email automatically)
+    // Profile is created automatically via the on_auth_user_created DB trigger
     const { data, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(form.email, {
       data: { full_name: form.full_name, org_id: orgId, role: form.role }
     })
@@ -67,26 +68,38 @@ export default function InviteUserModal({ onClose, onSuccess }) {
       }
 
       userId = signUpData?.user?.id
+
+      // signUp doesn't fire the trigger immediately for unconfirmed users,
+      // so insert the profile manually here as a safety net
+      if (userId) {
+        const { error: profileError } = await supabase.from('profiles').insert({
+          id:        userId,
+          org_id:    orgId,
+          full_name: form.full_name,
+          role:      form.role,
+        })
+        if (profileError && profileError.code !== '23505') {
+          // 23505 = unique_violation (profile already exists via trigger) — safe to ignore
+          setError(`User created but profile setup failed: ${profileError.message}`)
+          setLoading(false)
+          return
+        }
+      }
     } else {
       userId = data?.user?.id
     }
 
-    // Create profile record
-    if (userId) {
-      await supabase.from('profiles').insert({
-        id:        userId,
-        org_id:    orgId,
-        full_name: form.full_name,
-        role:      form.role,
-      })
-
-      // Assign systems (skip for admin roles — they see everything)
-      if (!isAdminRole && selectedSystems.size > 0) {
-        await setUserSystems(userId, [...selectedSystems])
+    // Assign systems (skip for admin roles — they see everything)
+    if (userId && !isAdminRole && selectedSystems.size > 0) {
+      const { error: sysError } = await setUserSystems(userId, [...selectedSystems])
+      if (sysError) {
+        setError(`User created but system assignment failed: ${sysError.message}`)
+        setLoading(false)
+        return
       }
     }
 
-    setSuccess(`${form.full_name} has been invited successfully.`)
+    setSuccess(`${form.full_name} has been invited. They'll receive an email to set their password.`)
     setLoading(false)
     setTimeout(onSuccess, 1500)
   }
