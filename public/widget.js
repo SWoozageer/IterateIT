@@ -1,4 +1,6 @@
-(function () {
+import subprocess, sys, os
+
+widget_content = r"""(function () {
   'use strict';
 
   var ITERATEIT_URL = 'https://avnigtkswxmwywogsvqn.supabase.co';
@@ -237,7 +239,9 @@
     var submitBtn = document.getElementById('iit-submit-btn');
     errorEl.style.display = 'none'; successEl.style.display = 'none';
     if (!name || !email || !title) { errorEl.textContent = 'Please fill in your name, email and title.'; errorEl.style.display = 'block'; return; }
-    localStorage.setItem('iit_name', name); localStorage.setItem('iit_email', email);
+    // Save name and email to localStorage so My Tickets tab can identify the user
+    localStorage.setItem('iit_name', name);
+    localStorage.setItem('iit_email', email);
     submitBtn.disabled = true; submitBtn.textContent = 'Submitting...';
     var ctx = capturePageContext();
     function finish(err) {
@@ -256,7 +260,8 @@
       fetch(ITERATEIT_URL + '/rest/v1/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY, 'x-widget-key': config.apiKey, 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ org_id: config.orgId, system_id: config.systemId, created_by: config.defaultUserId, title: title, description: desc, type: type, severity: severity, page_url: ctx.url, page_title: ctx.title, menu_path: ctx.menuPath, screenshot_url: screenshotUrl || null })
+        // Use reporter_name and reporter_email from the form — NOT a hardcoded user ID
+        body: JSON.stringify({ org_id: config.orgId, system_id: config.systemId, reporter_name: name, reporter_email: email, title: title, description: desc, type: type, severity: severity, page_url: ctx.url, page_title: ctx.title, menu_path: ctx.menuPath, screenshot_url: screenshotUrl || null })
       })
       .then(function(res) { if (!res.ok) return res.json().then(function(e) { throw new Error(e.message || 'Submission failed'); }); finish(null); })
       .catch(function(e) { finish(e.message); });
@@ -292,12 +297,22 @@
     list.innerHTML = '<p style="color:#8a9bb0;font-size:13px;margin-top:8px">Loading...</p>';
     var currentFilter = null;
 
+    // Read the email the user typed when they last submitted a ticket
+    var currentUserEmail = localStorage.getItem('iit_email') || '';
+
+    // If no email found, the user hasn't submitted a ticket yet on this device
+    if (!currentUserEmail) {
+      list.innerHTML = '<p style="color:#8a9bb0;font-size:13px;margin-top:8px;text-align:center;">Please log a ticket first so we can identify you.<br><br>Your tickets will then appear here.</p>';
+      return;
+    }
+
     var statusOrder = ['open', 'in_progress', 'in_review', 'on_hold', 'resolved', 'closed'];
     var statusLabels = { open: 'Open', in_progress: 'In Progress', in_review: 'In Review', on_hold: 'On Hold', resolved: 'Resolved', closed: 'Closed' };
     var statusBg = { open: '#dbeafe', in_progress: '#fef9c3', in_review: '#ede9fe', on_hold: '#f3f4f6', resolved: '#dcfce7', closed: '#f3f4f6' };
     var statusColor = { open: '#1d4ed8', in_progress: '#a16207', in_review: '#6d28d9', on_hold: '#6b7280', resolved: '#15803d', closed: '#6b7280' };
 
-    fetch(ITERATEIT_URL + '/rest/v1/tickets?org_id=eq.' + config.orgId + '&system_id=eq.' + config.systemId + '&created_by=eq.' + config.defaultUserId + '&select=id,title,status,severity,type,created_at&order=created_at.desc&limit=50', {
+    // Fetch tickets filtered by this user's email AND this specific app (system_id)
+    fetch(ITERATEIT_URL + '/rest/v1/tickets?org_id=eq.' + config.orgId + '&system_id=eq.' + config.systemId + '&reporter_email=eq.' + encodeURIComponent(currentUserEmail) + '&select=id,title,status,severity,type,created_at,reporter_email&order=created_at.desc&limit=50', {
       headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY, 'x-widget-key': config.apiKey }
     })
     .then(function(res) { return res.json(); })
@@ -310,32 +325,27 @@
         statusOrder.forEach(function(s) { grouped[s] = []; });
         tickets.forEach(function(t) { if (grouped[t.status]) grouped[t.status].push(t); });
 
-        var open    = grouped['open'].length;
-        var inProg  = grouped['in_progress'].length;
+        var open = grouped['open'].length;
+        var inProg = grouped['in_progress'].length;
         var resolved = grouped['resolved'].length + grouped['closed'].length;
 
-        // Summary cards
         var html = '<div style="display:flex;gap:8px;margin-bottom:16px;">';
 
-        // All card
         html += '<div onclick="window.__iit_filter(null)" style="flex:1;text-align:center;background:' + (!filter ? '#0057d9' : '#f5f7fa') + ';border-radius:8px;padding:8px 4px;cursor:pointer;border:2px solid ' + (!filter ? '#0057d9' : '#dde3ec') + ';">' +
           '<div style="font-size:16px;font-weight:700;color:' + (!filter ? 'white' : '#0d1b2a') + ';">' + tickets.length + '</div>' +
           '<div style="font-size:9px;color:' + (!filter ? 'white' : '#8a9bb0') + ';font-weight:600;">ALL</div>' +
         '</div>';
 
-        // Open card
         html += '<div onclick="window.__iit_filter(\'open\')" style="flex:1;text-align:center;background:' + (filter === 'open' ? '#1d4ed8' : '#dbeafe') + ';border-radius:8px;padding:8px 4px;cursor:pointer;border:2px solid ' + (filter === 'open' ? '#1d4ed8' : '#dbeafe') + ';">' +
           '<div style="font-size:16px;font-weight:700;color:' + (filter === 'open' ? 'white' : '#1d4ed8') + ';">' + open + '</div>' +
           '<div style="font-size:9px;color:' + (filter === 'open' ? 'white' : '#1d4ed8') + ';font-weight:600;">OPEN</div>' +
         '</div>';
 
-        // In Progress card
         html += '<div onclick="window.__iit_filter(\'in_progress\')" style="flex:1;text-align:center;background:' + (filter === 'in_progress' ? '#a16207' : '#fef9c3') + ';border-radius:8px;padding:8px 4px;cursor:pointer;border:2px solid ' + (filter === 'in_progress' ? '#a16207' : '#fef9c3') + ';">' +
           '<div style="font-size:16px;font-weight:700;color:' + (filter === 'in_progress' ? 'white' : '#a16207') + ';">' + inProg + '</div>' +
           '<div style="font-size:9px;color:' + (filter === 'in_progress' ? 'white' : '#a16207') + ';font-weight:600;">IN PROGRESS</div>' +
         '</div>';
 
-        // Resolved card
         html += '<div onclick="window.__iit_filter(\'resolved\')" style="flex:1;text-align:center;background:' + (filter === 'resolved' ? '#15803d' : '#dcfce7') + ';border-radius:8px;padding:8px 4px;cursor:pointer;border:2px solid ' + (filter === 'resolved' ? '#15803d' : '#dcfce7') + ';">' +
           '<div style="font-size:16px;font-weight:700;color:' + (filter === 'resolved' ? 'white' : '#15803d') + ';">' + resolved + '</div>' +
           '<div style="font-size:9px;color:' + (filter === 'resolved' ? 'white' : '#15803d') + ';font-weight:600;">RESOLVED</div>' +
@@ -343,7 +353,6 @@
 
         html += '</div>';
 
-        // Filter tickets
         var filtered = filter === null ? tickets :
           filter === 'resolved' ? tickets.filter(function(t) { return t.status === 'resolved' || t.status === 'closed'; }) :
           tickets.filter(function(t) { return t.status === filter; });
@@ -351,7 +360,6 @@
         if (!filtered.length) {
           html += '<p style="color:#8a9bb0;font-size:13px;text-align:center;margin-top:8px">No tickets in this status.</p>';
         } else {
-          // Group filtered tickets by status
           var filteredGrouped = {};
           statusOrder.forEach(function(s) { filteredGrouped[s] = []; });
           filtered.forEach(function(t) { if (filteredGrouped[t.status]) filteredGrouped[t.status].push(t); });
@@ -371,8 +379,6 @@
         }
 
         list.innerHTML = html;
-
-        // Wire up filter clicks
         window.__iit_filter = function(f) { renderList(f); };
       }
 
@@ -380,6 +386,7 @@
     })
     .catch(function() { list.innerHTML = '<p style="color:#c00;font-size:13px">Failed to load tickets.</p>'; });
   }
+
   window.IterateIT = {
     init: function(userConfig) {
       config = userConfig;
@@ -389,3 +396,57 @@
   };
 
 })();
+"""
+
+# Find the project root by looking for public/widget.js
+import os
+
+search_paths = [
+    os.path.expanduser('~/Documents'),
+    os.path.expanduser('~/Desktop'),
+    os.path.expanduser('~'),
+]
+
+widget_path = None
+for base in search_paths:
+    for root, dirs, files in os.walk(base):
+        # Skip node_modules and .git to speed up search
+        dirs[:] = [d for d in dirs if d not in ['node_modules', '.git', '.next']]
+        if 'widget.js' in files and 'public' in root:
+            candidate = os.path.join(root, 'widget.js')
+            widget_path = candidate
+            break
+    if widget_path:
+        break
+
+if not widget_path:
+    print("Could not find public/widget.js automatically.")
+    print("Please enter the full path to your widget.js file:")
+    widget_path = input().strip()
+
+print(f"Writing to: {widget_path}")
+with open(widget_path, 'w') as f:
+    f.write(widget_content)
+print("widget.js updated successfully!")
+
+# Now run git commands
+project_dir = os.path.dirname(os.path.dirname(widget_path))
+print(f"Running git commands in: {project_dir}")
+
+commands = [
+    ['git', 'add', 'public/widget.js'],
+    ['git', 'commit', '-m', 'fix: use reporter_name and reporter_email instead of hardcoded defaultUserId'],
+    ['git', 'push'],
+]
+
+for cmd in commands:
+    result = subprocess.run(cmd, cwd=project_dir, capture_output=True, text=True)
+    print(f"$ {' '.join(cmd)}")
+    if result.stdout: print(result.stdout)
+    if result.stderr: print(result.stderr)
+    if result.returncode != 0:
+        print(f"Command failed with exit code {result.returncode}")
+        sys.exit(1)
+
+print("\nAll done! widget.js has been updated and pushed to GitHub.")
+print("Remember to update the widget URL in your host apps to ?v=3 to bust the cache.")
