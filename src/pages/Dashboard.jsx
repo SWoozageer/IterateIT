@@ -5,7 +5,7 @@ import PageWrapper from '../components/layout/PageWrapper'
 import Badge from '../components/ui/Badge'
 import { getTickets } from '../services/ticketService'
 import { getSystems } from '../services/systemService'
-import { Ticket, CheckCircle, Clock, AlertCircle, Monitor } from 'lucide-react'
+import { Ticket, CheckCircle, Clock, AlertCircle, Monitor, Search } from 'lucide-react'
 
 function timeAgo(dateString) {
   const date = new Date(dateString)
@@ -77,10 +77,11 @@ function SystemCard({ system, count, active, onClick }) {
 export default function Dashboard() {
   const { profile } = useAuth()
 
-  const [tickets,       setTickets]       = useState([])
-  const [systems,       setSystems]       = useState([])
-  const [loading,       setLoading]       = useState(true)
-  const [activeFilter,  setActiveFilter]  = useState(null) // { type: 'status'|'severity'|'system', value }
+  const [tickets,        setTickets]        = useState([])
+  const [systems,        setSystems]        = useState([])
+  const [loading,        setLoading]        = useState(true)
+  const [activeFilter,   setActiveFilter]   = useState(null) // { type: 'status'|'severity'|'system', value }
+  const [loggedBySearch, setLoggedBySearch] = useState('')
 
   useEffect(() => {
     loadData()
@@ -117,12 +118,19 @@ export default function Dashboard() {
 
   // ── Filtered tickets for the table ──────────
   const filteredTickets = tickets.filter(t => {
-    if (!activeFilter) return true
-    if (activeFilter.type === 'status')   return t.status   === activeFilter.value
-    if (activeFilter.type === 'severity') return t.severity === activeFilter.value
-    if (activeFilter.type === 'system')   return t.system_id === activeFilter.value
+    if (activeFilter) {
+      if (activeFilter.type === 'status'   && t.status    !== activeFilter.value) return false
+      if (activeFilter.type === 'severity' && t.severity  !== activeFilter.value) return false
+      if (activeFilter.type === 'system'   && t.system_id !== activeFilter.value) return false
+    }
+    if (loggedBySearch) {
+      const name = (t.reporter_name || t.profiles?.full_name || '').toLowerCase()
+      if (!name.includes(loggedBySearch.toLowerCase())) return false
+    }
     return true
   }).slice(0, 10)
+
+  const hasAnyFilter = activeFilter || loggedBySearch
 
   function toggleFilter(type, value) {
     if (activeFilter && activeFilter.type === type && activeFilter.value === value) {
@@ -205,33 +213,51 @@ export default function Dashboard() {
 
       {/* ── Filtered Tickets Table ── */}
       <div className="bg-white rounded-lg border border-brand-divider overflow-hidden">
-        <div className="px-6 py-4 border-b border-brand-divider flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h3 className="font-display text-lg font-extrabold text-brand-navy">
-              {activeFilter ? 'Filtered Tickets' : 'Recent Tickets'}
-            </h3>
-            {activeFilter && (
-              <span className="text-xs bg-brand-blue/10 text-brand-blue px-2.5 py-1 rounded-full font-medium">
-                {getFilterLabel()}
-              </span>
-            )}
+        <div className="px-6 py-4 border-b border-brand-divider">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <h3 className="font-display text-lg font-extrabold text-brand-navy">
+                {hasAnyFilter ? 'Filtered Tickets' : 'Recent Tickets'}
+              </h3>
+              {activeFilter && (
+                <span className="text-xs bg-brand-blue/10 text-brand-blue px-2.5 py-1 rounded-full font-medium">
+                  {getFilterLabel()}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {activeFilter && (
+                <button
+                  onClick={() => setActiveFilter(null)}
+                  className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                >
+                  Clear filter ✕
+                </button>
+              )}
+              <Link to="/tickets" className="text-brand-blue text-sm hover:underline">
+                View all
+              </Link>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {activeFilter && (
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-steel" />
+              <input
+                type="text"
+                placeholder="Filter by logged by..."
+                value={loggedBySearch}
+                onChange={e => setLoggedBySearch(e.target.value)}
+                className="pl-8 pr-3 py-1.5 text-xs border border-brand-divider rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white w-52"
+              />
+            </div>
+            {loggedBySearch && (
               <button
-                onClick={() => setActiveFilter(null)}
+                onClick={() => setLoggedBySearch('')}
                 className="text-xs text-red-400 hover:text-red-600 transition-colors"
               >
-                Clear filter ✕
+                Clear ✕
               </button>
             )}
-            
-              <Link
-  to="/tickets"
-  className="text-brand-blue text-sm hover:underline"
->
-  View all
-</Link>
           </div>
         </div>
 
@@ -243,10 +269,10 @@ export default function Dashboard() {
           <div className="p-8 text-center text-brand-steel text-sm">
             No tickets match this filter.
             <button
-              onClick={() => setActiveFilter(null)}
+              onClick={() => { setActiveFilter(null); setLoggedBySearch('') }}
               className="ml-2 text-brand-blue hover:underline"
             >
-              Clear filter
+              Clear filters
             </button>
           </div>
         ) : (
@@ -257,6 +283,7 @@ export default function Dashboard() {
                 <th className="text-left px-4 py-3 text-brand-steel font-semibold text-xs uppercase tracking-wider">System</th>
                 <th className="text-left px-4 py-3 text-brand-steel font-semibold text-xs uppercase tracking-wider">Severity</th>
                 <th className="text-left px-4 py-3 text-brand-steel font-semibold text-xs uppercase tracking-wider">Status</th>
+                <th className="text-left px-4 py-3 text-brand-steel font-semibold text-xs uppercase tracking-wider">Logged by</th>
                 <th className="text-left px-4 py-3 text-brand-steel font-semibold text-xs uppercase tracking-wider">Created</th>
               </tr>
             </thead>
@@ -271,6 +298,7 @@ export default function Dashboard() {
                   <td className="px-4 py-3 text-brand-steel">{ticket.systems?.name || '—'}</td>
                   <td className="px-4 py-3"><Badge value={ticket.severity} variant="severity" /></td>
                   <td className="px-4 py-3"><Badge value={ticket.status} variant="status" /></td>
+                  <td className="px-4 py-3 text-brand-steel">{ticket.reporter_name || ticket.profiles?.full_name || '—'}</td>
                   <td className="px-4 py-3 text-brand-steel">{timeAgo(ticket.created_at)}</td>
                 </tr>
               ))}

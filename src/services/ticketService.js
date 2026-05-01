@@ -59,6 +59,19 @@ export async function updateTicket(ticketId, updates) {
   }
 }
 
+export async function deleteTickets(ticketIds) {
+  try {
+    const { error } = await supabase
+      .from('tickets')
+      .delete()
+      .in('id', ticketIds)
+    if (error) throw error
+    return { error: null }
+  } catch (error) {
+    return { error }
+  }
+}
+
 export async function addComment(ticketId, authorId, body, isInternal = false) {
   try {
     const { data, error } = await supabase

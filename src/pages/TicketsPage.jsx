@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Trash2 } from 'lucide-react'
 import PageWrapper from '../components/layout/PageWrapper'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
-import { getTickets } from '../services/ticketService'
+import { getTickets, deleteTickets } from '../services/ticketService'
 import { useAuth } from '../context/AuthContext'
 import { getSystems } from '../services/systemService'
 
@@ -19,7 +19,7 @@ function timeAgo(dateString) {
 }
 
 export default function TicketsPage() {
-  const { orgId } = useAuth()
+  const { orgId, role } = useAuth()
   const navigate  = useNavigate()
 
   const [tickets,        setTickets]        = useState([])
@@ -28,8 +28,11 @@ export default function TicketsPage() {
   const [searchQuery,    setSearchQuery]    = useState('')
   const [statusFilter,   setStatusFilter]   = useState('')
   const [severityFilter, setSeverityFilter] = useState('')
-  const [systems,      setSystems]      = useState([])
-const [systemFilter, setSystemFilter] = useState('')
+  const [systems,        setSystems]        = useState([])
+  const [systemFilter,   setSystemFilter]   = useState('')
+  const [selectedIds,    setSelectedIds]    = useState([])
+
+  const isAdmin = role === 'org_admin' || role === 'super_admin'
 
   useEffect(() => {
   loadSystems()
@@ -43,14 +46,33 @@ async function loadSystems() {
 
   async function loadTickets() {
     setLoading(true)
+    setSelectedIds([])
     const { data, error } = await getTickets({
-  orgId,
-  status:   statusFilter  || undefined,
-  systemId: systemFilter  || undefined,
-})
+      orgId,
+      status:   statusFilter  || undefined,
+      systemId: systemFilter  || undefined,
+    })
     if (error) setError(error.message)
     else setTickets(data || [])
     setLoading(false)
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(prev => prev.length === filtered.length ? [] : filtered.map(t => t.id))
+  }
+
+  async function handleDeleteSelected() {
+    if (!window.confirm(`Delete ${selectedIds.length} ticket(s)? This cannot be undone.`)) return
+    const { error } = await deleteTickets(selectedIds)
+    if (error) {
+      alert('Failed to delete: ' + error.message)
+      return
+    }
+    await loadTickets()
   }
 
   const filtered = tickets.filter(t => {
@@ -117,6 +139,24 @@ async function loadSystems() {
         </select>
       </div>
 
+      {isAdmin && selectedIds.length > 0 && (
+        <div className="mb-3 flex items-center gap-3">
+          <button
+            onClick={handleDeleteSelected}
+            className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+          >
+            <Trash2 size={14} />
+            Delete Selected ({selectedIds.length})
+          </button>
+          <button
+            onClick={() => setSelectedIds([])}
+            className="text-sm text-brand-steel hover:text-brand-navy transition-colors"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg border border-brand-divider overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-brand-steel text-sm animate-pulse">Loading tickets...</div>
@@ -133,6 +173,16 @@ async function loadSystems() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-brand-divider bg-brand-off-white">
+                {isAdmin && (
+                  <th className="px-4 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={filtered.length > 0 && selectedIds.length === filtered.length}
+                      onChange={toggleSelectAll}
+                      className="cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="text-left px-6 py-3 text-brand-steel font-semibold text-xs uppercase tracking-wider">Title</th>
                 <th className="text-left px-4 py-3 text-brand-steel font-semibold text-xs uppercase tracking-wider">System</th>
                 <th className="text-left px-4 py-3 text-brand-steel font-semibold text-xs uppercase tracking-wider">Type</th>
@@ -149,6 +199,16 @@ async function loadSystems() {
                   onClick={() => navigate('/tickets/' + ticket.id)}
                   className="hover:bg-brand-off-white cursor-pointer transition-colors"
                 >
+                  {isAdmin && (
+                    <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(ticket.id)}
+                        onChange={() => toggleSelect(ticket.id)}
+                        className="cursor-pointer"
+                      />
+                    </td>
+                  )}
                   <td className="px-6 py-4">
                     <p className="font-medium text-brand-navy">{ticket.title}</p>
                     {ticket.page_title && (
@@ -160,8 +220,8 @@ async function loadSystems() {
                   <td className="px-4 py-4"><Badge value={ticket.severity} variant="severity" /></td>
                   <td className="px-4 py-4"><Badge value={ticket.status} variant="status" /></td>
                   <td className="px-4 py-4 text-brand-steel">
-  {ticket.reporter_name || ticket.profiles?.full_name || 'n/a'}
-</td>
+                    {ticket.reporter_name || ticket.profiles?.full_name || 'n/a'}
+                  </td>
                   <td className="px-4 py-4 text-brand-steel">{timeAgo(ticket.created_at)}</td>
                 </tr>
               ))}
